@@ -141,7 +141,9 @@ class Comment_Tools extends Abstract_Tool {
 			'comment_content'      => $content,
 			'comment_author'       => sanitize_text_field( (string) ( $args['author_name'] ?? '' ) ),
 			'comment_author_email' => sanitize_email( (string) ( $args['author_email'] ?? '' ) ),
-			'comment_parent'       => (int) ( $args['parent'] ?? 0 ),
+			// wp_new_comment() reads this key unconditionally and warns when absent.
+			'comment_author_url'   => '',
+			'comment_parent'      => (int) ( $args['parent'] ?? 0 ),
 			'comment_approved'     => ( 'approve' === $status ) ? 1 : 0,
 		);
 
