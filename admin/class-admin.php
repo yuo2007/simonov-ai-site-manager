@@ -45,7 +45,7 @@ class Admin {
 	 */
 	public function menu() {
 		add_options_page(
-			'Simonov AI Site Manager',
+			'Simonov AI Site Manager (MCP)',
 			'Simonov AI Site Manager',
 			'manage_options',
 			WPMCP_SLUG,
@@ -186,7 +186,7 @@ class Admin {
 		settings_errors( 'wpmcp' );
 		?>
 		<div class="wrap">
-			<h1>Simonov AI Site Manager</h1>
+			<h1>Simonov AI Site Manager (MCP)</h1>
 			<p>Free Model Context Protocol server. Connect Claude, ChatGPT and other MCP clients to manage this site's content.</p>
 
 			<h2>Connection</h2>

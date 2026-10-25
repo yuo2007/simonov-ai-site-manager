@@ -1,4 +1,4 @@
-=== Simonov AI Site Manager ===
+=== Simonov AI Site Manager (MCP) ===
 Contributors: capoeira314
 Tags: mcp, ai, automation, api, content-management
 Requires at least: 5.8
