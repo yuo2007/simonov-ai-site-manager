@@ -1,4 +1,4 @@
-"""Generate the WordPress.org directory assets for AI Site Control.
+"""Generate the WordPress.org directory assets for Simonov AI Site Manager.
 
 Everything is drawn at 4x and downsampled with LANCZOS, because Pillow's
 drawing primitives do not antialias on their own.
@@ -75,12 +75,16 @@ def banner(w, h, path):
     d = ImageDraw.Draw(img)
 
     pad = int(W * 0.065)
-    title = font(BOLD, int(H * 0.215))
+    # Shrink the title until it clears the constellation on the right.
+    size = int(H * 0.215)
+    while font(BOLD, size).getlength("Simonov AI Site Manager") > W * 0.66:
+        size -= S
+    title = font(BOLD, size)
     sub = font(REG, int(H * 0.085))
     tag = font(SEMI, int(H * 0.068))
 
     y = H * 0.265
-    d.text((pad, y), "AI Site Control", font=title, fill=INK)
+    d.text((pad, y), "Simonov AI Site Manager", font=title, fill=INK)
     y += H * 0.255
     d.text((pad, y), "Model Context Protocol server for WordPress", font=sub, fill=MUTED)
     y += H * 0.145

@@ -1,31 +1,41 @@
-=== AI Site Control ===
+=== Simonov AI Site Manager ===
 Contributors: capoeira314
 Tags: mcp, ai, automation, api, content-management
 Requires at least: 5.8
 Tested up to: 7.1
 Requires PHP: 7.0
-Stable tag: 0.8.0
+Stable tag: 0.9.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Free, open Model Context Protocol (MCP) server for WordPress. Let Claude, ChatGPT and other MCP clients control your whole site.
+Free, open Model Context Protocol (MCP) server for WordPress. Lets Claude, ChatGPT and other MCP clients manage your site's content.
 
 == Description ==
 
-AI Site Control exposes a single Streamable-HTTP MCP endpoint that lets AI clients manage:
+Simonov AI Site Manager turns your WordPress site into a Model Context Protocol (MCP) server: one Streamable-HTTP endpoint, served by your own site, that an AI client you connect can use to work with your content.
+
+It can manage:
 
 * Posts, pages and any custom post type — create, read, update, delete, meta.
 * Taxonomies & terms — categories, tags, custom taxonomies, term assignment.
 * Media — upload from URL or base64, edit metadata, featured images.
-* Users — list, create, update, delete, roles.
 * Comments — moderate, reply, delete.
-* Site options, settings, navigation menus, site info.
-* Plugins — list, install (from wordpress.org), activate, deactivate, update, delete.
-* Themes — list, install, activate, update, delete.
-* WooCommerce — products and orders (auto-enabled when WooCommerce is active).
+* WooCommerce — products and order status (auto-enabled when WooCommerce is active).
 * Polylang — languages, translations, linking (auto-enabled when Polylang is active).
 
-Every action runs as a WordPress user you choose, so capability checks are always enforced.
+And look up, read-only:
+
+* Site info, options and navigation menus.
+* Users.
+* Installed plugins and themes, with their versions and available updates.
+
+It does not administer the site. There are no tools to install, activate, update or delete plugins or themes, to create, edit or delete users, or to change site settings — that stays in the WordPress dashboard.
+
+Every action runs as a WordPress user you choose, so capability checks are always enforced. Read-only mode, per-tool switches, revocable connections and an audit log let you decide how much of this a client can reach.
+
+= No external service =
+
+The plugin is the server and runs entirely on your site. There is no relay, account or service operated by the plugin author: the AI client you choose connects straight to your site's REST API, and access is granted either by you signing in to WordPress and approving the client (OAuth) or by a token you generate. Tokens are stored on your site, hashed, and can be revoked at any time from the settings page.
 
 = Requirements =
 
@@ -33,9 +43,9 @@ WordPress 5.8 or newer and PHP 7.0 or newer. Everything works the same on old an
 
 == Installation ==
 
-1. Install from Plugins → Add New, or copy the `ai-site-control` folder to `wp-content/plugins/` and activate it.
+1. Install from Plugins → Add New, or copy the `simonov-ai-site-manager` folder to `wp-content/plugins/` and activate it.
 2. Make sure Settings → Permalinks is set to any option other than "Plain".
-3. Go to Settings → AI Site Control and enable the server.
+3. Go to Settings → Simonov AI Site Manager and enable the server.
 
 Then connect a client one of two ways:
 
@@ -88,9 +98,9 @@ Through WordPress, like any other plugin from the directory: new versions appear
 == Security ==
 
 * The token is stored hashed (never in plaintext) and compared in constant time.
-* Every tool enforces WordPress capabilities against the specific object it touches — not just a generic capability — so a non-admin configured user cannot edit content, users or settings it does not own.
-* Option writes allow plugin and theme settings but block a fixed set of core options that control site access or infrastructure (users_can_register, default_role, siteurl, active_plugins, uninstall_plugins, the roles table, session salts, …). Option reads refuse anything that looks like a credential (API keys, SMTP passwords, salts).
-* User roles assignable through MCP are limited to non-administrator roles; the tools refuse to modify a super-admin or another administrator account.
+* Every tool enforces WordPress capabilities against the specific object it touches — not just a generic capability — so a non-admin configured user cannot edit content it does not own.
+* No tool changes plugins, themes, users or site settings.
+* Option reads refuse anything that looks like a credential (API keys, SMTP passwords, salts).
 * Media uploads validate file content against the extension and block fetches to internal/cloud-metadata addresses.
 * Disable individual tools from the settings page if you want to reduce surface area.
 
@@ -102,84 +112,5 @@ Note: the configured user acts with its full WordPress capabilities. Use the lea
 
 == Changelog ==
 
-Entries before this plugin joined the directory describe releases that were distributed from GitHub; that mechanism is not part of the directory version, which updates through WordPress.org like any other plugin.
-
-= 0.8.0 =
-* Added: **read-only mode**. One checkbox and every tool that changes anything — creating, editing, deleting, installing, configuring — disappears from the client's tool list and is refused if called anyway. Worth switching on whenever a client is connected for research or reporting rather than editing. Withholding a tool works better than refusing it: a model that can see `delete_post` keeps reaching for it and reporting failures at you, while one that cannot see it never raises the subject.
-* Added: **an audit log** of tool calls, on the settings page. The last 100 calls with the account, the result and the identifiers involved, including the ones that were refused. Only identifiers are recorded — never post content, option values or passwords — so the log does not become a new place for secrets to sit.
-* Why both: every call this server makes is chosen by a model whose context is filled with text from this very site — post bodies, comments, profile fields, product descriptions. That text is untrusted input reaching the thing that decides what to do next, and no capability check can tell a real instruction from one written into a comment. Capabilities bound what a connection *may* do; these two decide how much of that is reachable at all, and leave a record of what actually happened.
-* Note for anyone extending the plugin: a tool is treated as a write unless it is named in `Tool_Registry::$read_only_tools`, so a tool added through `wpmcp_tool_groups` is restricted by default rather than silently escaping read-only mode. Override with the `wpmcp_tool_is_write` filter.
-
-= 0.7.0 =
-* Added: **Active connections** on the settings page. Every client that signed in with WordPress is listed with the account it acts as and when its access expires, and each can be revoked on the spot — which drops its tokens and removes its registration, so it has to sign in again from scratch. There was previously no way to see what had been authorized and no way to withdraw it: an access token lasts 30 days and a refresh token 180, so short of changing the WordPress password a connection could not be cut off.
-* Security: refreshing an access token now re-checks that the account is still permitted to connect. A refresh token is good for 180 days, so an account that was demoted or stripped of its permissions kept minting working access tokens until it expired.
-* Security: client registration is rate-limited to 10 per hour per address, the request body is capped, and the client store no longer evicts a connection that still holds a token. Registration has to stay open for a client to introduce itself, but it is an anonymous write to an option — and the old "drop the oldest when full" rule meant a burst of junk registrations could push out the entry a working connector depended on, breaking it with nothing to explain why.
-* Security: tool error messages are stripped of server internals before they leave the site. Failures are still reported so the model can act on them, but an exception raised deep in WordPress carries absolute paths and a database error carries the query — neither helps the caller, and both travel on into an external model's context.
-
-= 0.6.3 =
-* Fixed: new versions took up to twelve hours to appear. The update check cached its answer for that long and only the "Check again" button went past it, so opening Dashboard → Updates could report "up to date" against a half-day-old answer — which reads as a broken feature, not as caching. How stale an answer may be now depends on why it is being asked for: no older than 60 seconds on the Updates screen, matching what WordPress uses for its own data there, 15 minutes for the background checks that fire on other admin pages, and always refetched when "Check again" is pressed. A cached failure is still retried after 30 minutes, so an outage cannot pin a site to an old version.
-* Changed: the release lookup is resolved once per request instead of once per caller, so a page that renders both the update row and the details modal no longer makes two API calls. The cache still exists to protect the unauthenticated GitHub rate limit of 60 requests an hour, which on shared hosting is shared with every other site on the same address.
-
-= 0.6.2 =
-* Security: `update_option` no longer writes transients. `_site_transient_update_plugins` and `_site_transient_update_themes` hold the package URL that WordPress downloads and unpacks on the next update, so writing one and then calling `update_plugin` installed arbitrary PHP from an arbitrary host. That is the same boundary the existing blocks on `uninstall_plugins` and the automatic-update settings exist to hold; the deny-list simply did not reach transients.
-* Security: `upload_media_from_url` now validates every redirect hop itself and pins the resolved address for the connection. Previously the URL was checked once and then handed to `download_url()`, which resolves the hostname again — so DNS with a near-zero TTL could answer the check with a public address and the fetch with 169.254.169.254. That range is exactly why the plugin carries its own check, because WordPress blocks RFC1918 but not cloud metadata, and the fetched body is stored as an attachment and returned as a public URL.
-* Security: `get_option` redacts credential-looking keys *inside* option values. The deny-list could only judge the option name, and plugins almost never give a secret its own option — they store one settings array under an innocent name, so `woocommerce_stripe_settings` handed `secret_key` straight to the model.
-* Security: `update_user` refuses to change the email or password of the account the connection itself acts as. Those two fields were exempt from the "not another administrator" guard, which turned a leaked token into permanent takeover with the owner locked out — and WordPress's confirm-your-new-address flow does not apply outside wp-admin.
-* Security: the WooCommerce tools now check capabilities against the specific product or order, like every other tool group. They relied on the blanket capability alone, so a role with `edit_products` but not `edit_others_products` — a common WooCommerce combination — could write to everyone's products.
-* Security: the authorization screen now shows the hostname the access will be sent to. Client registration is open by design, and the client name is chosen by whoever registers, so anyone could register a client called "Claude" pointing at their own server and mail the link to an administrator. The destination is the one fact that tells the real client from an impostor.
-* Security: JSON-RPC batches are capped at 50 requests; a single POST could previously queue thousands of tool calls.
-* Security: update packages are only accepted from GitHub's own download hosts, so an unexpected API response cannot turn an update check into an install from an arbitrary server.
-
-= 0.6.1 =
-* Added: an explanation of AI user-agent blocking, on the settings page and in the FAQ. A host or CDN that blocks AI bots makes the connection fail in a way that looks like a plugin fault: the WordPress sign-in succeeds, because it happens in your browser, and then the MCP request is refused, because that one comes from the AI provider's servers under their own user agent. The new section names the agent to allow for Claude, ChatGPT and Perplexity, makes the point that it is not the crawler agent and that those can stay blocked, gives a one-line curl command to confirm the block, and lists where such a rule usually lives.
-* Changed: dropped "native OAuth 2.0" from the roadmap. It shipped in 0.4.0.
-
-= 0.6.0 =
-* Added: one-click updates. The plugin now reports new versions to WordPress itself, so Dashboard → Updates and the Plugins screen offer "Update now" exactly as they do for a plugin from the directory — no more uploading a ZIP by hand, and no helper plugin to install. Uses the "Update URI" header that WordPress has supported since 5.8; releases are served from GitHub. Note that this release still has to be installed manually once, because the update code has to be on the site before WordPress can offer anything.
-* Fixed: the distributed archive wraps everything in a single folder. Earlier ones had the files at the root, which made WordPress name the plugin directory after the archive, so it differed from site to site.
-* Changed: minimum requirements lowered from WordPress 6.0 / PHP 7.4 to **WordPress 5.8 / PHP 7.0**. Every WordPress function the plugin calls was checked against the 5.8 core API — no shims were needed, so the plugin behaves identically on old and new installs. The only PHP 7.4-only construct (an arrow function in the filesystem bootstrap) was rewritten as a plain closure.
-* Added: a requirements check at load time. On an unsupported stack the plugin stays inert and shows an admin notice instead of causing a fatal error — this matters because the "Requires at least" header only blocks activation, not a plugin that is already active when the site is downgraded.
-* Note: Full Site Editing tools (templates, global styles, navigation) depend on post types that WordPress registers only from 5.9 with a block theme. On 5.8 or a classic theme they are reported as unknown post types; every other tool is unaffected.
-
-= 0.5.2 =
-* Added: Yoast SEO fields are now writable through the post tools. When Yoast is active, the whole `_yoast_wpseo_` meta namespace (SEO title, meta description, focus keyphrase, canonical, robots directives, Open Graph / Twitter cards, schema, cornerstone flag, primary category, and any future Yoast field) is allowed via the `meta` parameter of `create_post`/`update_post` and via `update_post_meta`. All other protected `_`-prefixed keys stay blocked. Extend or restrict the allowlist with the `wpmcp_meta_writable` filter.
-
-= 0.5.1 =
-* Changed: block-theme / Full Site Editing content is now editable through the post tools — global styles (colours & fonts), templates and template parts, the Additional CSS, and navigation. These remain gated by the theme's own edit_theme_options capability, so only a connection acting as an admin-level user can change them. Purely internal types (revisions, GDPR requests, Customizer changesets) stay blocked.
-
-= 0.5.0 =
-* Changed: `update_option` can now configure third-party plugin and theme settings. Writes switched from a fixed allow-list (which blocked all plugin options) to a deny-list of the specific core options that are escalation or takeover primitives — users_can_register, default_role, siteurl/home, active_plugins, uninstall_plugins, template/stylesheet, cron, the wp_user_roles table and session salts remain blocked. Reads still refuse credential-looking option names. Extend the block set with the `wpmcp_write_blocked_options` filter.
-* Includes the OAuth connection fixes from 0.4.1.
-
-= 0.4.1 =
-* Fixed: the WWW-Authenticate challenge was being sent on successful (200) responses too, which made some MCP clients believe authentication was still required and fail to connect right after signing in. It is now sent only on 401.
-* Fixed: OAuth now works on sites that have no static token configured — the endpoint no longer requires a configured "act as user" when connecting via sign-in.
-* Fixed: the token endpoint accepts public PKCE clients that omit client_id / redirect_uri in the exchange (the code and PKCE verifier already bind the grant).
-
-= 0.4.0 =
-* Added: "Sign in with WordPress" — a built-in OAuth 2.1 authorization server (dynamic client registration, PKCE S256, refresh tokens). In claude.ai you now paste only your site address, click Connect, log in and approve — no token to copy or place in a URL. The connection acts as the WordPress user who signs in.
-* Added: the 401 response now carries a WWW-Authenticate challenge and the site serves OAuth discovery documents, so MCP clients can find the sign-in flow automatically.
-* Improved: after generating a token the settings page shows a ready-to-paste connection URL and a Claude Desktop config block, each with a one-click Copy button.
-* Note: OAuth and the token URL both require "pretty" permalinks (Settings → Permalinks). The settings page warns if plain permalinks are active.
-
-= 0.3.0 =
-* Security: hardened every tool with object-level capability checks. Previously a tool checked only a generic capability (e.g. "can edit posts") and then acted on a specific object without verifying ownership or type — so a lower-privileged configured user could edit or delete content, users, media and settings beyond their rights.
-* Security: `update_option` now uses an allow-list. Blocked escalation via users_can_register + default_role, uninstall_plugins (arbitrary callable), active_plugins and siteurl.
-* Security: `get_option` refuses option names that look like credentials.
-* Security: user tools restrict assignable roles to non-administrators and refuse to modify super-admin / other administrator accounts; changing another user's password/email now requires the proper per-user capability.
-* Security: `create_comment` routes through wp_new_comment with unconditional kses sanitization and defaults to "hold" — closes a stored-XSS path.
-* Security: `delete_plugin` / `delete_theme` validate the path (no traversal) and refuse to remove this plugin itself; install/delete no longer overrides a site's FTP/SSH filesystem method.
-* Security: media tools verify object type and capability, validate base64 content, cap upload sizes, and block SSRF to 169.254/16 and 100.64/10.
-* Security: token is now stored as a fast keyed HMAC compared with hash_equals (was bcrypt, an unauthenticated CPU-amplification vector); token length is capped and auth errors are uniform. Existing tokens are upgraded transparently on first use — no need to regenerate.
-* Security: the MCP endpoint requires an application/json content type and sends Cache-Control: no-store; the settings page validates the selected user server-side.
-* Fixed: media delete honoured "force": false incorrectly and always deleted permanently.
-
-= 0.2.0 =
-* Fixed: the server now echoes the client's requested protocol version instead of always answering `2025-06-18`. Answering with a different version made clients disconnect right after `initialize`.
-* Fixed: `resources/list`, `resources/templates/list` and `prompts/list` return empty lists instead of `-32601 Method not found`. Clients probe these immediately after `initialize`.
-* Fixed: dropped `structuredContent` from tool results — the spec ties it to a declared `outputSchema`, which these tools do not declare, so strict clients rejected every tool call.
-* Changed: tool checkboxes are no longer inverted. Checked now means enabled, matching the "Enabled tools" heading.
-* Added: "Select all" / "Deselect all" buttons for the tool list.
-
-= 0.1.0 =
-* Initial release: bearer-token MCP server with full content, media, user, taxonomy, comment, option, plugin, theme, WooCommerce and Polylang tool coverage.
+= 0.9.0 =
+* First release in the WordPress.org directory.

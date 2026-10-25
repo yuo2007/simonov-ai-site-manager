@@ -162,7 +162,7 @@ class OAuth {
 		$s = wpmcp()->auth->settings();
 		$this->send_json(
 			array(
-				'plugin'        => 'ai-site-control',
+				'plugin'        => 'simonov-ai-site-manager',
 				'version'       => WPMCP_VERSION,
 				'enabled'       => ! empty( $s['enabled'] ),
 				'oauth'         => true,
@@ -378,12 +378,12 @@ class OAuth {
 
 		$client = $this->get_client( $client_id );
 		if ( ! $client ) {
-			wp_die( esc_html__( 'Unknown OAuth client.', 'ai-site-control' ), '', array( 'response' => 400 ) );
+			wp_die( esc_html__( 'Unknown OAuth client.', 'simonov-ai-site-manager' ), '', array( 'response' => 400 ) );
 		}
 		// redirect_uri must exactly match one the client registered. Until it is
 		// validated we must NOT redirect errors to it.
 		if ( ! in_array( $redirect_uri, $client['redirect_uris'], true ) ) {
-			wp_die( esc_html__( 'Invalid redirect_uri for this client.', 'ai-site-control' ), '', array( 'response' => 400 ) );
+			wp_die( esc_html__( 'Invalid redirect_uri for this client.', 'simonov-ai-site-manager' ), '', array( 'response' => 400 ) );
 		}
 		if ( 'code' !== $response_type ) {
 			$this->redirect_error( $redirect_uri, 'unsupported_response_type', $state );
@@ -402,7 +402,7 @@ class OAuth {
 		$user = wp_get_current_user();
 		if ( ! $this->user_may_connect( $user ) ) {
 			wp_die(
-				esc_html__( 'Your account is not permitted to connect an MCP client to this site.', 'ai-site-control' ),
+				esc_html__( 'Your account is not permitted to connect an MCP client to this site.', 'simonov-ai-site-manager' ),
 				'',
 				array( 'response' => 403 )
 			);
@@ -444,7 +444,7 @@ class OAuth {
 	 * @param \WP_User $user   Current user.
 	 */
 	private function render_consent( $client, $params, $user ) {
-		$name  = $client['client_name'] ? $client['client_name'] : __( 'An MCP client', 'ai-site-control' );
+		$name  = $client['client_name'] ? $client['client_name'] : __( 'An MCP client', 'simonov-ai-site-manager' );
 		$roles = implode( ', ', (array) $user->roles );
 
 		// Registration is open by design (RFC 7591), so client_name is chosen
@@ -455,13 +455,15 @@ class OAuth {
 		// that distinguishes the real client from an impostor, so show it.
 		$destination = (string) wp_parse_url( isset( $params['redirect_uri'] ) ? $params['redirect_uri'] : '', PHP_URL_HOST );
 		if ( '' === $destination ) {
-			$destination = __( 'an unknown destination', 'ai-site-control' );
+			$destination = __( 'an unknown destination', 'simonov-ai-site-manager' );
 		}
 
 		$hidden = array( 'client_id', 'redirect_uri', 'state', 'code_challenge', 'code_challenge_method', 'response_type', 'scope' );
 
 		// A self-contained page: login_header()/login_footer() live in
 		// wp-login.php, which is not loaded on a normal front-end request.
+		wp_enqueue_style( 'wpmcp-consent', WPMCP_URL . 'assets/consent.css', array(), WPMCP_VERSION );
+
 		nocache_headers();
 		if ( ! headers_sent() ) {
 			header( 'Content-Type: text/html; charset=utf-8' );
@@ -473,33 +475,19 @@ class OAuth {
 	<meta charset="<?php bloginfo( 'charset' ); ?>">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<meta name="robots" content="noindex,nofollow">
-	<title><?php esc_html_e( 'Authorize access', 'ai-site-control' ); ?></title>
-	<style>
-		body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:#f0f0f1;color:#3c434a;margin:0;padding:40px 16px;}
-		.card{max-width:460px;margin:0 auto;background:#fff;border:1px solid #dcdcde;border-radius:8px;padding:28px 30px;}
-		h1{font-size:20px;margin:0 0 4px;}
-		.site{color:#646970;font-size:13px;margin:0 0 20px;}
-		p{font-size:14px;line-height:1.6;}
-		.who{background:#f6f7f7;border-radius:6px;padding:10px 12px;font-size:13px;}
-		.dest{background:#fcf9e8;border-left:4px solid #dba617;border-radius:0 6px 6px 0;padding:10px 12px;font-size:13px;}
-		.actions{display:flex;gap:10px;margin-top:24px;}
-		button{font-size:14px;padding:9px 18px;border-radius:5px;cursor:pointer;border:1px solid #2271b1;}
-		.approve{background:#2271b1;color:#fff;}
-		.deny{background:#fff;color:#2271b1;}
-		.foot{color:#646970;font-size:12px;margin-top:18px;}
-		a{color:#2271b1;}
-	</style>
+	<title><?php esc_html_e( 'Authorize access', 'simonov-ai-site-manager' ); ?></title>
+	<?php wp_print_styles( 'wpmcp-consent' ); ?>
 </head>
 <body>
 	<div class="card">
-		<h1><?php echo esc_html( $name ); ?> <?php esc_html_e( 'wants to connect', 'ai-site-control' ); ?></h1>
+		<h1><?php echo esc_html( $name ); ?> <?php esc_html_e( 'wants to connect', 'simonov-ai-site-manager' ); ?></h1>
 		<p class="site"><?php echo esc_html( get_bloginfo( 'name' ) ); ?> — <?php echo esc_html( home_url() ); ?></p>
-		<p><?php esc_html_e( 'This will let the client read and manage your site through the Model Context Protocol.', 'ai-site-control' ); ?></p>
+		<p><?php esc_html_e( 'This will let the client read and manage your site through the Model Context Protocol.', 'simonov-ai-site-manager' ); ?></p>
 		<p class="who">
 			<?php
 			printf(
 				/* translators: 1: user login, 2: roles */
-				esc_html__( 'It will act as %1$s (%2$s), limited to that account\'s permissions.', 'ai-site-control' ),
+				esc_html__( 'It will act as %1$s (%2$s), limited to that account\'s permissions.', 'simonov-ai-site-manager' ),
 				'<strong>' . esc_html( $user->user_login ) . '</strong>',
 				esc_html( $roles )
 			);
@@ -509,7 +497,7 @@ class OAuth {
 			<?php
 			printf(
 				/* translators: %s: hostname the authorization code will be sent to */
-				esc_html__( 'Access will be sent to %s. Approve only if you recognise that address — the name above is chosen by whoever registered the client and is not verified.', 'ai-site-control' ),
+				esc_html__( 'Access will be sent to %s. Approve only if you recognise that address — the name above is chosen by whoever registered the client and is not verified.', 'simonov-ai-site-manager' ),
 				'<strong>' . esc_html( $destination ) . '</strong>'
 			);
 			?>
@@ -520,13 +508,13 @@ class OAuth {
 				<input type="hidden" name="<?php echo esc_attr( $k ); ?>" value="<?php echo esc_attr( isset( $params[ $k ] ) ? $params[ $k ] : '' ); ?>">
 			<?php endforeach; ?>
 			<div class="actions">
-				<button type="submit" name="approve" value="1" class="approve"><?php esc_html_e( 'Approve', 'ai-site-control' ); ?></button>
-				<button type="submit" name="approve" value="" class="deny"><?php esc_html_e( 'Deny', 'ai-site-control' ); ?></button>
+				<button type="submit" name="approve" value="1" class="approve"><?php esc_html_e( 'Approve', 'simonov-ai-site-manager' ); ?></button>
+				<button type="submit" name="approve" value="" class="deny"><?php esc_html_e( 'Deny', 'simonov-ai-site-manager' ); ?></button>
 			</div>
 		</form>
 		<p class="foot">
-			<?php esc_html_e( 'Signed in as', 'ai-site-control' ); ?> <?php echo esc_html( $user->user_login ); ?> —
-			<a href="<?php echo esc_url( wp_logout_url( $this->current_url() ) ); ?>"><?php esc_html_e( 'switch account', 'ai-site-control' ); ?></a>
+			<?php esc_html_e( 'Signed in as', 'simonov-ai-site-manager' ); ?> <?php echo esc_html( $user->user_login ); ?> —
+			<a href="<?php echo esc_url( wp_logout_url( $this->current_url() ) ); ?>"><?php esc_html_e( 'switch account', 'simonov-ai-site-manager' ); ?></a>
 		</p>
 	</div>
 </body>
@@ -777,10 +765,10 @@ class OAuth {
 					$client = isset( $clients[ $rec['client_id'] ] ) ? $clients[ $rec['client_id'] ] : array();
 					$rows[ $key ] = array(
 						'client_id'   => (string) $rec['client_id'],
-						'client_name' => empty( $client['client_name'] ) ? __( 'Unnamed client', 'ai-site-control' ) : $client['client_name'],
+						'client_name' => empty( $client['client_name'] ) ? __( 'Unnamed client', 'simonov-ai-site-manager' ) : $client['client_name'],
 						'destination' => empty( $client['redirect_uris'][0] ) ? '' : (string) wp_parse_url( $client['redirect_uris'][0], PHP_URL_HOST ),
 						'user_id'     => (int) $rec['user_id'],
-						'user_login'  => $user ? $user->user_login : __( 'deleted account', 'ai-site-control' ),
+						'user_login'  => $user ? $user->user_login : __( 'deleted account', 'simonov-ai-site-manager' ),
 						'access_until'  => 0,
 						'refresh_until' => 0,
 					);

@@ -22,8 +22,8 @@ jobs:
         run: |
           set -euo pipefail
           TAG="${GITHUB_REF_NAME#v}"
-          HEADER=$(sed -n 's/^ \* Version:[[:space:]]*\(.*\)$/\1/p' ai-site-control.php | head -n1)
-          CONST=$(sed -n "s/^define( 'WPMCP_VERSION', '\(.*\)' );$/\1/p" ai-site-control.php | head -n1)
+          HEADER=$(sed -n 's/^ \* Version:[[:space:]]*\(.*\)$/\1/p' simonov-ai-site-manager.php | head -n1)
+          CONST=$(sed -n "s/^define( 'WPMCP_VERSION', '\(.*\)' );$/\1/p" simonov-ai-site-manager.php | head -n1)
           STABLE=$(sed -n 's/^Stable tag:[[:space:]]*\(.*\)$/\1/p' readme.txt | head -n1)
           echo "tag=$TAG header=$HEADER const=$CONST stable=$STABLE"
           # A tag that disagrees with the header would have every site offered
@@ -42,12 +42,12 @@ jobs:
           set -euo pipefail
           # The folder inside the archive decides where WordPress installs the
           # plugin, so it has to be the plugin slug and nothing else.
-          mkdir -p .distbuild/ai-site-control
-          rsync -a --exclude-from=.distignore ./ .distbuild/ai-site-control/
+          mkdir -p .distbuild/simonov-ai-site-manager
+          rsync -a --exclude-from=.distignore ./ .distbuild/simonov-ai-site-manager/
           cd .distbuild
-          zip -qr ../ai-site-control.zip ai-site-control
+          zip -qr ../simonov-ai-site-manager.zip simonov-ai-site-manager
           cd ..
-          unzip -l ai-site-control.zip
+          unzip -l simonov-ai-site-manager.zip
 
       - name: Collect the release notes from readme.txt
         run: |
@@ -68,6 +68,6 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          gh release create "$GITHUB_REF_NAME" ai-site-control.zip \
+          gh release create "$GITHUB_REF_NAME" simonov-ai-site-manager.zip \
             --title "$GITHUB_REF_NAME" \
             --notes-file notes.md

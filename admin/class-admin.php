@@ -25,6 +25,19 @@ class Admin {
 	public function __construct() {
 		add_action( 'admin_menu', array( $this, 'menu' ) );
 		add_action( 'admin_init', array( $this, 'handle_actions' ) );
+		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue' ) );
+	}
+
+	/**
+	 * Load the settings page script, on that page only.
+	 *
+	 * @param string $hook_suffix Current admin page.
+	 */
+	public function enqueue( $hook_suffix ) {
+		if ( 'settings_page_' . WPMCP_SLUG !== $hook_suffix ) {
+			return;
+		}
+		wp_enqueue_script( 'wpmcp-admin', WPMCP_URL . 'admin/admin.js', array(), WPMCP_VERSION, true );
 	}
 
 	/**
@@ -32,10 +45,10 @@ class Admin {
 	 */
 	public function menu() {
 		add_options_page(
-			'AI Site Control',
-			'AI Site Control',
+			'Simonov AI Site Manager',
+			'Simonov AI Site Manager',
 			'manage_options',
-			'ai-site-control',
+			WPMCP_SLUG,
 			array( $this, 'render' )
 		);
 	}
@@ -173,8 +186,8 @@ class Admin {
 		settings_errors( 'wpmcp' );
 		?>
 		<div class="wrap">
-			<h1>AI Site Control</h1>
-			<p>Free Model Context Protocol server. Connect Claude, ChatGPT and other MCP clients to control this site.</p>
+			<h1>Simonov AI Site Manager</h1>
+			<p>Free Model Context Protocol server. Connect Claude, ChatGPT and other MCP clients to manage this site's content.</p>
 
 			<h2>Connection</h2>
 			<table class="form-table" role="presentation">
@@ -214,40 +227,23 @@ class Admin {
 
 					<p style="margin-bottom:4px;"><strong>Token</strong></p>
 					<p style="display:flex;gap:6px;align-items:center;">
-						<input type="text" readonly class="wpmcp-copy-src" style="flex:1;font-family:monospace;" value="<?php echo esc_attr( $flash ); ?>" onclick="this.select()">
+						<input type="text" readonly class="wpmcp-copy-src" style="flex:1;font-family:monospace;" value="<?php echo esc_attr( $flash ); ?>">
 						<button type="button" class="button wpmcp-copy">Copy</button>
 					</p>
 
 					<p style="margin-bottom:4px;"><strong>Ready-to-paste connection URL</strong> — for claude.ai custom connectors and any client that takes a single URL:</p>
 					<p style="display:flex;gap:6px;align-items:center;">
-						<input type="text" readonly class="wpmcp-copy-src" style="flex:1;font-family:monospace;" value="<?php echo esc_attr( $ready_url ); ?>" onclick="this.select()">
+						<input type="text" readonly class="wpmcp-copy-src" style="flex:1;font-family:monospace;" value="<?php echo esc_attr( $ready_url ); ?>">
 						<button type="button" class="button wpmcp-copy">Copy</button>
 					</p>
 					<p class="description" style="margin-top:0;">The token is part of this URL. Treat the whole URL as a password — anyone who has it controls the site as the configured user.</p>
 
 					<p style="margin-bottom:4px;"><strong>Claude Desktop / Claude Code config</strong> — paste into your MCP config file:</p>
 					<p style="display:flex;gap:6px;align-items:flex-start;">
-						<textarea readonly class="wpmcp-copy-src" style="flex:1;font-family:monospace;height:9em;" onclick="this.select()"><?php echo esc_textarea( $config ); ?></textarea>
+						<textarea readonly class="wpmcp-copy-src" style="flex:1;font-family:monospace;height:9em;"><?php echo esc_textarea( $config ); ?></textarea>
 						<button type="button" class="button wpmcp-copy">Copy</button>
 					</p>
 				</div>
-				<script>
-				( function () {
-					document.querySelectorAll( '.wpmcp-copy' ).forEach( function ( btn ) {
-						btn.addEventListener( 'click', function () {
-							var src = btn.parentNode.querySelector( '.wpmcp-copy-src' );
-							src.select();
-							var done = function () { btn.textContent = 'Copied ✓'; setTimeout( function () { btn.textContent = 'Copy'; }, 1500 ); };
-							if ( navigator.clipboard ) {
-								navigator.clipboard.writeText( src.value ).then( done, function () { document.execCommand( 'copy' ); done(); } );
-							} else {
-								document.execCommand( 'copy' );
-								done();
-							}
-						} );
-					} );
-				}() );
-				</script>
 			<?php endif; ?>
 
 			<form method="post">
@@ -263,8 +259,8 @@ class Admin {
 						<td>
 							<label><input type="checkbox" name="read_only" value="1" <?php checked( ! empty( $s['read_only'] ) ); ?>> Refuse anything that changes the site</label>
 							<p class="description" style="max-width:640px;">
-								Only the listing and reading tools stay available; everything that creates, edits,
-								deletes, installs or configures disappears from the client's tool list and is refused
+								Only the listing and reading tools stay available; everything that creates, edits
+								or deletes disappears from the client's tool list and is refused
 								if called anyway. Worth switching on whenever a client is connected for research or
 								reporting rather than for editing &mdash; the model decides which tool to call, and
 								its context is full of text from this site that anyone could have written.
@@ -285,7 +281,7 @@ class Admin {
 								)
 							);
 							?>
-							<p class="description">All MCP actions run as this user; WordPress capabilities are enforced accordingly. Use an administrator for full control.</p>
+							<p class="description">All MCP actions run as this user; WordPress capabilities are enforced accordingly. Use the least-privileged role that covers what you need &mdash; an editor is enough for content.</p>
 						</td>
 					</tr>
 				</table>
@@ -317,18 +313,6 @@ class Admin {
 					<?php endforeach; ?>
 				</div>
 				<p class="description">Checked = <strong>enabled</strong>. Unchecked tools do not appear in <code>tools/list</code>.</p>
-				<script>
-				( function () {
-					var set = function ( on ) {
-						document.querySelectorAll( '.wpmcp-tool' ).forEach( function ( cb ) {
-							cb.checked = on;
-							cb.parentNode.querySelector( 'span' ).style.textDecoration = on ? 'none' : 'line-through';
-						} );
-					};
-					document.getElementById( 'wpmcp-check-all' ).addEventListener( 'click', function () { set( true ); } );
-					document.getElementById( 'wpmcp-uncheck-all' ).addEventListener( 'click', function () { set( false ); } );
-				}() );
-				</script>
 
 				<p class="submit">
 					<button type="submit" name="wpmcp_action" value="save" class="button button-primary">Save settings</button>
@@ -442,7 +426,7 @@ class Admin {
 				(not just the domain — the site root is not an MCP server):
 			</p>
 			<p style="display:flex;gap:6px;align-items:center;max-width:760px;">
-				<input type="text" readonly class="wpmcp-copy-src" style="flex:1;font-family:monospace;" value="<?php echo esc_attr( $endpoint ); ?>" onclick="this.select()">
+				<input type="text" readonly class="wpmcp-copy-src" style="flex:1;font-family:monospace;" value="<?php echo esc_attr( $endpoint ); ?>">
 				<button type="button" class="button wpmcp-copy2" data-copy="<?php echo esc_attr( $endpoint ); ?>">Copy</button>
 			</p>
 			<p class="description" style="margin-top:0;">
@@ -503,7 +487,7 @@ class Admin {
 
 			<p style="max-width:880px;margin-bottom:4px;">To check this site from any machine with <code>curl</code>:</p>
 			<p style="display:flex;gap:6px;align-items:center;max-width:880px;">
-				<input type="text" readonly style="flex:1;font-family:monospace;" value="<?php echo esc_attr( $ua_probe ); ?>" onclick="this.select()">
+				<input type="text" readonly style="flex:1;font-family:monospace;" value="<?php echo esc_attr( $ua_probe ); ?>">
 				<button type="button" class="button wpmcp-copy2" data-copy="<?php echo esc_attr( $ua_probe ); ?>">Copy</button>
 			</p>
 			<p class="description" style="max-width:880px;margin-top:0;">
@@ -537,17 +521,6 @@ class Admin {
 				noticing that one entry on it is how your own integrations reach the site.
 			</p>
 
-			<script>
-			( function () {
-				document.querySelectorAll( '.wpmcp-copy2' ).forEach( function ( btn ) {
-					btn.addEventListener( 'click', function () {
-						var v = btn.getAttribute( 'data-copy' );
-						var done = function () { btn.textContent = 'Copied ✓'; setTimeout( function () { btn.textContent = 'Copy'; }, 1500 ); };
-						if ( navigator.clipboard ) { navigator.clipboard.writeText( v ).then( done, done ); } else { done(); }
-					} );
-				} );
-			}() );
-			</script>
 		</div>
 		<?php
 	}

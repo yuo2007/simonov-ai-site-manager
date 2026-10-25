@@ -239,7 +239,7 @@ class Auth {
 	 */
 	private function log( $message ) {
 		if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-			error_log( '[ai-site-control] ' . $message ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+			error_log( '[simonov-ai-site-manager] ' . $message ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
 		}
 	}
 }

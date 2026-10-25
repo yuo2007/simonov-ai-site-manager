@@ -24,96 +24,6 @@ class Site_Tools extends Abstract_Tool {
 	private $blocked = array( 'wpmcp_settings', 'auth_key', 'auth_salt', 'secret' );
 
 	/**
-	 * Core options that must never be WRITTEN through the bridge (exact match).
-	 *
-	 * Writes use a deny-list so that third-party plugin settings — an open,
-	 * unknowable namespace — remain configurable. Only the finite, well-known
-	 * set of core options that are escalation or takeover primitives is blocked:
-	 *
-	 *   users_can_register + default_role  → self-register as administrator
-	 *   uninstall_plugins                  → invoke an arbitrary PHP callable
-	 *   active_plugins                     → bypass the activate_plugins cap
-	 *   siteurl / home                     → load wp-admin JS from another host
-	 *   template / stylesheet              → switch theme (runs its code)
-	 *   cron                               → schedule an existing action
-	 *   upload_path / upload_url_path      → redirect where files are written
-	 *   (…)*user_roles (fragment)          → rewrite role capabilities
-	 *
-	 * @var string[]
-	 */
-	private $write_blocked_exact = array(
-		'users_can_register',
-		'default_role',
-		'siteurl',
-		'home',
-		'active_plugins',
-		'uninstall_plugins',
-		'template',
-		'stylesheet',
-		'current_theme',
-		'upload_path',
-		'upload_url_path',
-		'cron',
-		'recovery_keys',
-		'admin_email',
-		'new_admin_email',
-		'db_version',
-		'initial_db_version',
-		'db_upgraded',
-		'mailserver_url',
-		'mailserver_login',
-		'mailserver_pass',
-		'mailserver_port',
-	);
-
-	/**
-	 * Prefixes that block a WRITE.
-	 *
-	 * Matched only at the START of the name, unlike the fragments below, so a
-	 * third-party option that merely mentions one of these stays configurable.
-	 *
-	 * The family here is everything WordPress reads to decide what updates
-	 * itself and when. Listing the members by name would be narrower than the
-	 * risk — core has gained more of them over time — and would also read to a
-	 * static scanner as a plugin meddling with the update machinery, which is
-	 * the opposite of what refusing to write them does.
-	 *
-	 * @var string[]
-	 */
-	private $write_blocked_prefixes = array(
-		'auto_update_',
-	);
-
-	/**
-	 * Substrings that block a WRITE regardless of the rest of the name.
-	 *
-	 * Narrower than the read list: writing a plugin's API key is a legitimate
-	 * configuration action, so credential-looking names are NOT blocked here
-	 * (they are only blocked for reads, to stop secrets leaking to the model).
-	 * Only the site's own secrets, session salts and the roles/caps table are
-	 * off-limits to writes.
-	 *
-	 * @var string[]
-	 */
-	private $write_blocked_fragments = array(
-		'wpmcp',
-		'user_roles',
-		'auth_key',
-		'auth_salt',
-		'logged_in_key',
-		'logged_in_salt',
-		'nonce_key',
-		'nonce_salt',
-		// Transients are options too, and a couple of the ones WordPress keeps
-		// its upgrade bookkeeping in are code-execution primitives: they hold
-		// the package URL that the upgrader downloads and unpacks. Writing one
-		// and then asking the bridge to upgrade would install arbitrary PHP
-		// from an arbitrary host — the same boundary the entries above exist to
-		// hold. This substring covers the site-wide and timeout variants too.
-		'_transient_',
-	);
-
-	/**
 	 * Substrings that mark an option as unreadable.
 	 *
 	 * Reads get a deny-list rather than an allow-list because the useful
@@ -168,20 +78,6 @@ class Site_Tools extends Abstract_Tool {
 			'Read a WordPress option / setting by name.',
 			$this->schema( array( 'name' => $this->str( 'Option name.' ) ), array( 'name' ) ),
 			array( $this, 'get_option' ),
-			'manage_options'
-		);
-
-		$r->add(
-			'update_option',
-			'Create or update a WordPress option / setting. Value may be a string or JSON for arrays/objects.',
-			$this->schema(
-				array(
-					'name'  => $this->str( 'Option name.' ),
-					'value' => $this->str( 'Value (string, or JSON-encoded array/object).' ),
-				),
-				array( 'name', 'value' )
-			),
-			array( $this, 'update_option' ),
 			'manage_options'
 		);
 
@@ -264,7 +160,7 @@ class Site_Tools extends Abstract_Tool {
 		$out = array();
 		foreach ( $value as $key => $item ) {
 			if ( is_string( $key ) && $this->looks_secret( $key ) ) {
-				$out[ $key ] = '[redacted by ai-site-control]';
+				$out[ $key ] = '[redacted by simonov-ai-site-manager]';
 				continue;
 			}
 			$out[ $key ] = $this->redact( $item, $depth + 1 );
@@ -285,28 +181,6 @@ class Site_Tools extends Abstract_Tool {
 			}
 		}
 		return false;
-	}
-
-	/**
-	 * Update an option.
-	 *
-	 * @param array $args Args.
-	 * @return array
-	 * @throws \Exception When blocked.
-	 */
-	public function update_option( array $args ) {
-		$name  = (string) $this->required( $args, 'name' );
-		$this->guard_write( $name );
-		$value = $this->required( $args, 'value' );
-		$decoded = json_decode( (string) $value, true );
-		if ( JSON_ERROR_NONE === json_last_error() && ( is_array( $decoded ) ) ) {
-			$value = $decoded;
-		}
-		update_option( $name, $value );
-		return array(
-			'name'  => $name,
-			'value' => $this->redact( get_option( $name ) ),
-		);
 	}
 
 	/**
@@ -342,43 +216,9 @@ class Site_Tools extends Abstract_Tool {
 	}
 
 	/**
-	 * Reject any option that is not on the write allow-list.
-	 *
-	 * @param string $name Option name.
-	 * @throws \Exception When not writable.
-	 */
-	private function guard_write( $name ) {
-		/**
-		 * Filter the exact option names blocked from writes.
-		 *
-		 * @param string[] $blocked Option names.
-		 * @param string   $name    The option being written.
-		 */
-		$blocked_exact = (array) apply_filters( 'wpmcp_write_blocked_options', $this->write_blocked_exact, $name );
-
-		if ( in_array( strtolower( $name ), array_map( 'strtolower', $blocked_exact ), true ) ) {
-			throw new \Exception( esc_html( sprintf( 'Option "%s" is protected and cannot be changed via MCP (it controls site access or infrastructure).', $name ) ) );
-		}
-
-		foreach ( $this->write_blocked_prefixes as $prefix ) {
-			if ( 0 === stripos( $name, $prefix ) ) {
-				throw new \Exception(
-					esc_html( sprintf( 'Option "%s" is protected and cannot be changed via MCP (it controls how the site updates itself).', $name ) )
-				);
-			}
-		}
-
-		foreach ( $this->write_blocked_fragments as $fragment ) {
-			if ( false !== stripos( $name, $fragment ) ) {
-				throw new \Exception( esc_html( sprintf( 'Option "%s" is protected and cannot be changed via MCP.', $name ) ) );
-			}
-		}
-	}
-
-	/**
 	 * Reject a READ of a blocked / credential-bearing option.
 	 *
-	 * Reads are stricter than writes: whatever is read leaves the site for a
+	 * Whatever is read leaves the site for a
 	 * third-party model, so any credential-looking name is refused.
 	 *
 	 * @param string $name Option name.

@@ -155,11 +155,11 @@ class MCP_Server {
 				'prompts'   => array( 'listChanged' => false ),
 			),
 			'serverInfo'      => array(
-				'name'    => 'ai-site-control',
-				'title'   => get_bloginfo( 'name' ) . ' (AI Site Control)',
+				'name'    => 'simonov-ai-site-manager',
+				'title'   => get_bloginfo( 'name' ) . ' (Simonov AI Site Manager)',
 				'version' => WPMCP_VERSION,
 			),
-			'instructions'    => 'WordPress site control server. Use tools/list to discover available operations for posts, media, users, taxonomies, comments, options, plugins, themes, WooCommerce and Polylang.',
+			'instructions'    => 'WordPress content server. Use tools/list to discover available operations for posts, media, taxonomies, comments, WooCommerce and Polylang, plus read-only lookups of site info, options, users, plugins and themes.',
 		);
 	}
 

@@ -116,7 +116,7 @@ abstract class Abstract_Tool {
 	 *
 	 * The registry only checks a PRIMITIVE capability ("can this user edit
 	 * posts at all?"). The low-level functions the callbacks use
-	 * (wp_update_post, wp_delete_user, wp_insert_term, ...) deliberately
+	 * (wp_update_post, wp_delete_post, wp_insert_term, ...) deliberately
 	 * perform no checks of their own — they trust the caller. Everything
 	 * WordPress actually protects (ownership, post status, post-type caps,
 	 * the super-admin guard) lives in map_meta_cap() and is only reachable
@@ -261,74 +261,6 @@ abstract class Abstract_Tool {
 			throw new \Exception( esc_html( sprintf( 'Permission denied: taxonomy "%s" (%s) requires "%s".', $taxonomy, $action, $cap ) ) );
 		}
 		return $obj;
-	}
-
-	/**
-	 * Assert a user account may be modified by the current user.
-	 *
-	 * Guards the three things wp_update_user()/wp_delete_user() do not:
-	 * the target-aware capability, the super-admin, and any account that can
-	 * itself administer the site (so an MCP token cannot be used to seize a
-	 * more privileged account than the one it was issued for).
-	 *
-	 * @param int    $id  Target user ID.
-	 * @param string $cap Meta capability, edit_user or delete_user.
-	 * @return \WP_User
-	 * @throws \Exception When missing or not permitted.
-	 */
-	protected function assert_touchable_user( $id, $cap = 'edit_user' ) {
-		$id     = (int) $id;
-		$target = get_userdata( $id );
-		if ( ! $target ) {
-			throw new \Exception( esc_html( 'User not found: ' . $id ) );
-		}
-
-		$this->assert_can( $cap, $id );
-
-		if ( is_multisite() && is_super_admin( $id ) ) {
-			throw new \Exception( esc_html( 'Refusing to modify a network administrator via MCP.' ) );
-		}
-		if ( user_can( $id, 'manage_options' ) && $id !== get_current_user_id() ) {
-			throw new \Exception( esc_html( 'Refusing to modify another administrator account via MCP.' ) );
-		}
-		return $target;
-	}
-
-	/**
-	 * Roles this bridge is allowed to grant.
-	 *
-	 * Deliberately excludes administrator: nothing an AI client legitimately
-	 * automates requires minting one, and granting it creates a backdoor that
-	 * outlives token rotation and plugin removal.
-	 *
-	 * @return string[]
-	 */
-	protected function assignable_roles() {
-		/**
-		 * Filter the roles assignable through MCP.
-		 *
-		 * @param string[] $roles Role slugs.
-		 */
-		return (array) apply_filters( 'wpmcp_assignable_roles', array( 'subscriber', 'contributor', 'author', 'editor', 'customer', 'shop_manager' ) );
-	}
-
-	/**
-	 * Assert a role may be granted, and that the caller may promote at all.
-	 *
-	 * @param string $role Role slug.
-	 * @throws \Exception When not assignable.
-	 */
-	protected function assert_assignable_role( $role ) {
-		$role = (string) $role;
-		if ( ! get_role( $role ) ) {
-			throw new \Exception( esc_html( 'Unknown role: ' . $role ) );
-		}
-		if ( ! in_array( $role, $this->assignable_roles(), true ) ) {
-			throw new \Exception( esc_html( sprintf( 'Role "%s" cannot be assigned via MCP.', $role ) ) );
-		}
-		if ( ! current_user_can( 'promote_users' ) ) {
-			throw new \Exception( esc_html( 'Permission denied: promote_users is required to set a role.' ) );
-		}
 	}
 
 	/**
