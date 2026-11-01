@@ -14,6 +14,25 @@ Free, open Model Context Protocol (MCP) server for WordPress. Lets Claude, ChatG
 
 Simonov AI Site Manager turns your WordPress site into a Model Context Protocol (MCP) server: one Streamable-HTTP endpoint, served by your own site, that an AI client you connect can use to work with your content.
 
+= Stop formatting content by hand =
+
+Every post, page and product needs the same routine: paste the text, fix the headings, pick categories and tags, upload a picture and set it as the featured image, write an excerpt, fill in the custom fields, set the price, schedule it. Do that for everything you publish, and it adds up to hours every week.
+
+Connect Claude or ChatGPT, describe the result you want in plain words, and let the assistant do the clicking:
+
+* "Turn this text into a post: proper headings, a short intro, the Recipes category, fitting tags, this photo as the featured image. Publish on Friday at 9:00."
+* "Create products from this price list: titles, descriptions, SKUs, prices and stock. Save them as drafts so I can check them first."
+* "Put a 20% sale price on every product in the Summer category."
+* "Rewrite the excerpts of my ten latest posts so each one is under 160 characters."
+* "Make a Polish translation of yesterday's post and link the two." (with Polylang)
+* "Go through the comments waiting for moderation, approve the genuine ones and reply to the questions."
+
+The work that used to take a morning of copying and pasting becomes a few sentences, and it is done on your real site, in your own WordPress, with no export and no import.
+
+You stay in charge of what the assistant may touch. It works through a WordPress account you choose, with that account's permissions. Ask for drafts when you want to review first, switch on read-only mode when you only need answers, and check the audit log to see every change it made.
+
+= What it can do =
+
 It can manage:
 
 * Posts, pages and any custom post type — create, read, update, delete, meta.
