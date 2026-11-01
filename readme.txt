@@ -43,19 +43,70 @@ WordPress 5.8 or newer and PHP 7.0 or newer. Everything works the same on old an
 
 1. Install from Plugins → Add New, or copy the `simonov-ai-site-manager` folder to `wp-content/plugins/` and activate it.
 2. Make sure Settings → Permalinks is set to any option other than "Plain".
-3. Go to Settings → Simonov AI Site Manager and enable the server.
+3. Go to Settings → Simonov AI Site Manager, tick "Accept MCP requests" and save.
 
-Then connect a client one of two ways:
+The settings page shows your **MCP endpoint URL**. It is always your site address followed by `/wp-json/wp-mcp/v1/mcp`:
 
-Sign in with WordPress (claude.ai, recommended):
-* In Claude, add a custom connector and paste just your site address (e.g. https://example.com/).
-* Claude opens your WordPress login; approve the request once. Done — no token to handle. The connection acts as the user who signs in.
+`https://example.com/wp-json/wp-mcp/v1/mcp`
 
-Token (Claude Desktop, Claude Code, scripts):
-* On the settings page choose "Act as user", then "Generate / rotate token".
-* Copy the ready-made connection URL or the Claude Desktop config shown at the top of the page.
+Paste this full address into the client, not just the domain: the site's home page is not an MCP server.
+
+The client connects as the WordPress account that signs in, with that account's permissions. An Editor is enough for content work and is the safer choice.
+
+= Connect Claude (claude.ai) =
+
+Custom connectors work on every Claude plan; the free plan allows one.
+
+1. In claude.ai open Customize → Connectors, click "+ Add", then "Add custom connector".
+2. Give it a name (your site's name is fine), paste the MCP endpoint URL and click "Continue".
+3. Keep sign-in turned on. If Claude asks which OAuth client to use, choose "Register automatically". Click "Add".
+4. Click "Connect". Claude opens your site's WordPress login in a new tab. Sign in.
+5. The authorization screen names the address the access will be sent to. Check that it says **claude.ai**, then click "Approve".
+6. In a chat, open the "+" menu → Connectors and switch your site on.
+
+Then ask, for example: "List my five most recent drafts" or "Publish the post about the spring sale and set its featured image".
+
+On Team and Enterprise plans an owner adds the connector once under Organization settings → Connectors; each member then clicks "Connect" and signs in with their own WordPress account.
+
+= Connect ChatGPT =
+
+ChatGPT connects custom MCP servers through developer mode. Whether your plan offers it, and whether a workspace admin has to allow it first, is up to OpenAI — check ChatGPT's Settings → Apps.
+
+1. In ChatGPT open Settings → Apps → Advanced settings and turn on developer mode.
+2. Click "Create app". Give it a name, paste the MCP endpoint URL and choose OAuth as the authentication. Confirm that you trust the server and create the app.
+3. ChatGPT opens your WordPress login. Sign in, check that the authorization screen says **chatgpt.com**, then click "Approve".
+4. In a chat, open the "+" menu, choose developer mode and select your site.
+
+ChatGPT may ask you to confirm a tool call before running it. Read what it is about to do before you confirm.
+
+= Connect Claude Code =
+
+`claude mcp add --transport http my-site https://example.com/wp-json/wp-mcp/v1/mcp`
+
+Then run `/mcp` inside Claude Code, choose the server and authenticate. Your browser opens the same WordPress login and authorization screen.
+
+= Connect with a token (Claude Desktop config, scripts, other clients) =
+
+For clients that cannot sign in through a browser:
+
+1. On the settings page choose "Act as user", then click "Generate / rotate token".
+2. Copy the ready-made connection URL or the Claude Desktop config shown at the top of the page. The token is shown once.
+
+Treat the token, and any URL containing it, as a password. Generating a new token invalidates the old one.
+
+= Use more than one client =
+
+Claude, ChatGPT and any other client can be connected at the same time. Each one signs in separately and appears as its own row under Active connections, where you can revoke it without affecting the others.
 
 == Frequently Asked Questions ==
+
+= How do I connect Claude or ChatGPT? =
+
+Step-by-step instructions for claude.ai, ChatGPT, Claude Code and token-based clients are on the Installation tab. In every case you paste the MCP endpoint URL from the settings page, sign in to WordPress and approve the client.
+
+= What address do I paste into the client? =
+
+The full MCP endpoint URL from Settings → Simonov AI Site Manager, e.g. `https://example.com/wp-json/wp-mcp/v1/mcp`. Pasting only the domain does not work.
 
 = The client signs in, then says the server refused its request =
 
