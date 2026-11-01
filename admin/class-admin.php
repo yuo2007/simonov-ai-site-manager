@@ -281,7 +281,7 @@ class Admin {
 								)
 							);
 							?>
-							<p class="description">All MCP actions run as this user; WordPress capabilities are enforced accordingly. Use the least-privileged role that covers what you need &mdash; an editor is enough for content.</p>
+							<p class="description">All MCP actions run as this user; WordPress capabilities are enforced accordingly. Administrative capabilities (plugins, themes, users, settings, unfiltered HTML) are withheld from every MCP request, so even an administrator account only gets content work. Use the least-privileged role that covers what you need &mdash; an editor is enough for content.</p>
 						</td>
 					</tr>
 				</table>

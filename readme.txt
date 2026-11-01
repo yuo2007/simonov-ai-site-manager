@@ -4,7 +4,7 @@ Tags: mcp, ai, automation, api, content-management
 Requires at least: 5.8
 Tested up to: 7.1
 Requires PHP: 7.0
-Stable tag: 0.9.0
+Stable tag: 0.9.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -25,11 +25,9 @@ It can manage:
 
 And look up, read-only:
 
-* Site info, options and navigation menus.
-* Users.
-* Installed plugins and themes, with their versions and available updates.
+* Site info and navigation menus.
 
-It does not administer the site. There are no tools to install, activate, update or delete plugins or themes, to create, edit or delete users, or to change site settings — that stays in the WordPress dashboard.
+It does not administer the site, and it cannot be made to. There are no tools for plugins, themes, users or site settings, and every MCP request runs without administrative capabilities: managing plugins, themes, users, options or core, editing files, posting unfiltered HTML and editing theme configuration are refused for the whole request, even when the connected account is an administrator. Administration stays in the WordPress dashboard.
 
 Every action runs as a WordPress user you choose, so capability checks are always enforced. Read-only mode, per-tool switches, revocable connections and an audit log let you decide how much of this a client can reach.
 
@@ -39,7 +37,7 @@ The plugin is the server and runs entirely on your site. There is no relay, acco
 
 = Requirements =
 
-WordPress 5.8 or newer and PHP 7.0 or newer. Everything works the same on old and new installs; the only difference is that Full Site Editing content (templates, template parts, global styles, navigation) only exists on sites that have it — WordPress 5.9+ with a block theme. On an older or classic-theme site those post types simply are not registered and the post tools report them as unknown.
+WordPress 5.8 or newer and PHP 7.0 or newer. Everything works the same on old and new installs.
 
 == Installation ==
 
@@ -111,6 +109,10 @@ Note: the configured user acts with its full WordPress capabilities. Use the lea
 * WPML integration.
 
 == Changelog ==
+
+= 0.9.1 =
+* MCP requests never hold administrative capabilities, whichever account is connected.
+* Removed the option, user, plugin and theme lookup tools.
 
 = 0.9.0 =
 * First release in the WordPress.org directory.

@@ -159,7 +159,7 @@ class MCP_Server {
 				'title'   => get_bloginfo( 'name' ) . ' (Simonov AI Site Manager)',
 				'version' => WPMCP_VERSION,
 			),
-			'instructions'    => 'WordPress content server. Use tools/list to discover available operations for posts, media, taxonomies, comments, WooCommerce and Polylang, plus read-only lookups of site info, options, users, plugins and themes.',
+			'instructions'    => 'WordPress content server. Use tools/list to discover available operations for posts, media, taxonomies, comments, WooCommerce and Polylang, plus read-only lookups of site info and menus.',
 		);
 	}
 

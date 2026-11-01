@@ -98,10 +98,8 @@ final class Plugin {
 		require_once WPMCP_DIR . 'includes/tools/class-posts-tools.php';
 		require_once WPMCP_DIR . 'includes/tools/class-taxonomy-tools.php';
 		require_once WPMCP_DIR . 'includes/tools/class-media-tools.php';
-		require_once WPMCP_DIR . 'includes/tools/class-user-tools.php';
 		require_once WPMCP_DIR . 'includes/tools/class-comment-tools.php';
 		require_once WPMCP_DIR . 'includes/tools/class-site-tools.php';
-		require_once WPMCP_DIR . 'includes/tools/class-plugin-theme-tools.php';
 		require_once WPMCP_DIR . 'includes/tools/class-woocommerce-tools.php';
 		require_once WPMCP_DIR . 'includes/tools/class-polylang-tools.php';
 		require_once WPMCP_DIR . 'admin/class-admin.php';
@@ -115,10 +113,8 @@ final class Plugin {
 			new Tools\Posts_Tools(),
 			new Tools\Taxonomy_Tools(),
 			new Tools\Media_Tools(),
-			new Tools\User_Tools(),
 			new Tools\Comment_Tools(),
 			new Tools\Site_Tools(),
-			new Tools\Plugin_Theme_Tools(),
 		);
 
 		if ( class_exists( 'WooCommerce' ) ) {

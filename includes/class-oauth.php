@@ -487,7 +487,7 @@ class OAuth {
 			<?php
 			printf(
 				/* translators: 1: user login, 2: roles */
-				esc_html__( 'It will act as %1$s (%2$s), limited to that account\'s permissions.', 'simonov-ai-site-manager' ),
+				esc_html__( 'It will act as %1$s (%2$s), limited to that account\'s permissions and to content work only: plugins, themes, users and settings stay out of reach even for an administrator.', 'simonov-ai-site-manager' ),
 				'<strong>' . esc_html( $user->user_login ) . '</strong>',
 				esc_html( $roles )
 			);

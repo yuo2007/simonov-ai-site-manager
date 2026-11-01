@@ -14,11 +14,77 @@ defined( 'ABSPATH' ) || exit;
  *
  * Bearer-token authentication. The token is stored hashed; on a successful
  * match the associated WordPress user is set as the current user so that all
- * capability checks apply naturally.
+ * capability checks apply naturally — under a ceiling that strips every
+ * administrative capability for the rest of the request.
  */
 class Auth {
 
 	const OPTION = 'wpmcp_settings';
+
+	/**
+	 * Capabilities an MCP request never holds, whoever it authenticates as.
+	 *
+	 * The bridge is for content. Signing in as an administrator must not turn
+	 * a remote client into one, so everything that administers the site —
+	 * plugins, themes, users, settings, core, file editing, raw HTML and
+	 * uploads, theme configuration, import/export, network and store
+	 * settings — is denied for the whole request. Meta capabilities resolve
+	 * to these (edit_user → edit_users, manage_privacy_options →
+	 * manage_options), so they are covered too.
+	 *
+	 * @var string[]
+	 */
+	const DENIED_CAPS = array(
+		'manage_options',
+		'activate_plugins',
+		'install_plugins',
+		'update_plugins',
+		'delete_plugins',
+		'edit_plugins',
+		'upload_plugins',
+		'resume_plugins',
+		'switch_themes',
+		'install_themes',
+		'update_themes',
+		'delete_themes',
+		'edit_themes',
+		'upload_themes',
+		'resume_themes',
+		'edit_theme_options',
+		'customize',
+		'update_core',
+		'update_languages',
+		'install_languages',
+		'edit_files',
+		'list_users',
+		'create_users',
+		'add_users',
+		'edit_users',
+		'delete_users',
+		'promote_users',
+		'remove_users',
+		'unfiltered_html',
+		'unfiltered_upload',
+		'import',
+		'export',
+		'edit_dashboard',
+		'view_site_health_checks',
+		'export_others_personal_data',
+		'erase_others_personal_data',
+		'manage_network',
+		'manage_network_options',
+		'manage_network_plugins',
+		'manage_network_themes',
+		'manage_network_users',
+		'manage_sites',
+		'create_sites',
+		'delete_sites',
+		'delete_site',
+		'setup_network',
+		'upgrade_network',
+		'manage_woocommerce',
+		'view_woocommerce_reports',
+	);
 
 	/**
 	 * Read plugin settings.
@@ -136,6 +202,7 @@ class Auth {
 			if ( is_multisite() && ! is_user_member_of_blog( $oauth_user, get_current_blog_id() ) ) {
 				return $this->deny();
 			}
+			$this->limit_capabilities();
 			wp_set_current_user( $oauth_user );
 			return true;
 		}
@@ -163,9 +230,43 @@ class Auth {
 			return $this->deny();
 		}
 
+		$this->limit_capabilities();
 		wp_set_current_user( $user->ID );
 
 		return true;
+	}
+
+	/**
+	 * Put the capability ceiling in place for the rest of this request.
+	 *
+	 * Called before wp_set_current_user() on purpose: setting the user fires
+	 * kses_init(), which decides whether content gets filtered by asking for
+	 * unfiltered_html — it must already be refused at that point.
+	 *
+	 * Hooked on map_meta_cap rather than user_has_cap because a multisite
+	 * super admin is granted everything before user_has_cap ever runs;
+	 * do_not_allow is the one answer WP_User::has_cap() honours for them too.
+	 */
+	private function limit_capabilities() {
+		add_filter( 'map_meta_cap', array( __CLASS__, 'deny_admin_caps' ), PHP_INT_MAX, 2 );
+	}
+
+	/**
+	 * Replace any administrative primitive with do_not_allow.
+	 *
+	 * edit_user is refused outright: for a user's own account core maps it to
+	 * no primitive at all, so the list alone would still let a request edit
+	 * the very account it signed in as — e-mail and password included.
+	 *
+	 * @param string[] $caps Primitive capabilities the check resolved to.
+	 * @param string   $cap  Capability being checked.
+	 * @return string[]
+	 */
+	public static function deny_admin_caps( $caps, $cap ) {
+		if ( 'edit_user' === $cap || array_intersect( (array) $caps, self::DENIED_CAPS ) ) {
+			return array( 'do_not_allow' );
+		}
+		return $caps;
 	}
 
 	/**

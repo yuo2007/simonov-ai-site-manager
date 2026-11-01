@@ -207,8 +207,9 @@ abstract class Abstract_Tool {
 
 		// Purely internal bookkeeping types are never editable content. The
 		// Site Editor / FSE types (wp_template, wp_global_styles, custom_css,
-		// …) are NOT listed here: they are legitimate theme configuration and
-		// stay gated by their own edit_theme_options capability below.
+		// …) are not listed here because their own capability already shuts
+		// them out: edit_theme_options is never granted over MCP (see
+		// Auth::DENIED_CAPS).
 		$internal = array( 'revision', 'nav_menu_item', 'oembed_cache', 'user_request', 'customize_changeset' );
 		if ( in_array( $post_type, $internal, true ) ) {
 			throw new \Exception( esc_html( 'Post type not manageable via MCP: ' . $post_type ) );
