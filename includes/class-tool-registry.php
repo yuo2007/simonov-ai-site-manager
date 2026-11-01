@@ -110,6 +110,52 @@ class Tool_Registry {
 	}
 
 	/**
+	 * Writes that only add something new and never overwrite or remove.
+	 *
+	 * MCP assumes a write is destructive unless told otherwise, and that is the
+	 * right default here too: update_* replaces what was there, set_* and
+	 * assign_* swap one value for another. Only the tools named below are
+	 * reported as additive.
+	 *
+	 * @var string[]
+	 */
+	private static $additive_tools = array(
+		'create_comment',
+		'create_post',
+		'create_term',
+		'pll_create_translation',
+		'upload_media_base64',
+		'upload_media_from_url',
+		'wc_create_product',
+	);
+
+	/**
+	 * MCP tool annotations, derived from the same classification read-only
+	 * mode uses, so the hint a client sees can never disagree with what the
+	 * server enforces.
+	 *
+	 * Clients use these to decide what to run without asking the user first;
+	 * ChatGPT, for one, asks before calling tools not marked read-only.
+	 *
+	 * @param string $name Tool name.
+	 * @return array
+	 */
+	public function annotations( $name ) {
+		if ( ! $this->is_write( $name ) ) {
+			return array(
+				'readOnlyHint'  => true,
+				'openWorldHint' => false,
+			);
+		}
+		return array(
+			'readOnlyHint'    => false,
+			'destructiveHint' => ! in_array( (string) $name, self::$additive_tools, true ),
+			// Fetching from a URL is the one tool that reaches beyond this site.
+			'openWorldHint'   => 'upload_media_from_url' === $name,
+		);
+	}
+
+	/**
 	 * Is the server restricted to reads?
 	 *
 	 * @return bool
@@ -174,6 +220,7 @@ class Tool_Registry {
 				'name'        => $def['name'],
 				'description' => $def['description'],
 				'inputSchema' => $def['inputSchema'],
+				'annotations' => $this->annotations( $name ),
 			);
 		}
 		return $out;

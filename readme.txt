@@ -4,7 +4,7 @@ Tags: mcp, ai, automation, api, content-management
 Requires at least: 5.8
 Tested up to: 7.1
 Requires PHP: 7.0
-Stable tag: 0.9.1
+Stable tag: 0.9.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -96,7 +96,7 @@ ChatGPT connects custom MCP servers through developer mode. Whether your plan of
 3. ChatGPT opens your WordPress login. Sign in, check that the authorization screen says **chatgpt.com**, then click "Approve".
 4. In a chat, open the "+" menu, choose developer mode and select your site.
 
-ChatGPT may ask you to confirm a tool call before running it. Read what it is about to do before you confirm.
+Tools that only read run straight away. Before anything that changes the site, ChatGPT asks you to confirm. Read what it is about to do before you confirm.
 
 = Connect Claude Code =
 
@@ -168,7 +168,6 @@ Through WordPress, like any other plugin from the directory: new versions appear
 * The token is stored hashed (never in plaintext) and compared in constant time.
 * Every tool enforces WordPress capabilities against the specific object it touches — not just a generic capability — so a non-admin configured user cannot edit content it does not own.
 * No tool changes plugins, themes, users or site settings.
-* Option reads refuse anything that looks like a credential (API keys, SMTP passwords, salts).
 * Media uploads validate file content against the extension and block fetches to internal/cloud-metadata addresses.
 * Disable individual tools from the settings page if you want to reduce surface area.
 
@@ -179,6 +178,9 @@ Note: the configured user acts with its full WordPress capabilities. Use the lea
 * WPML integration.
 
 == Changelog ==
+
+= 0.9.2 =
+* Every tool now tells the client whether it only reads, adds something new, or can overwrite or delete. ChatGPT and other clients run reading tools without asking and ask before changes.
 
 = 0.9.1 =
 * MCP requests never hold administrative capabilities, whichever account is connected.
