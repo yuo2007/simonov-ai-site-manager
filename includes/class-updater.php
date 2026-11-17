@@ -183,12 +183,24 @@ class Updater {
 			return $source;
 		}
 
+		global $wp_filesystem;
+
+		// The same GitHub repository also hosts the WordPress.org edition,
+		// whose main file has a different name. Installing that over this
+		// plugin would leave WordPress pointing at a file that no longer
+		// exists, and it would deactivate the plugin on every site at once.
+		if ( $wp_filesystem && ! $wp_filesystem->exists( trailingslashit( $source ) . basename( WPMCP_FILE ) ) ) {
+			return new \WP_Error(
+				'wpmcp_wrong_package',
+				__( 'The downloaded package is not WP MCP Control. The update was stopped and the installed version is untouched.', 'wp-mcp-control' )
+			);
+		}
+
 		$expected = dirname( WPMCP_BASENAME );
 		if ( '.' === $expected || '' === $expected ) {
 			return $source;
 		}
 
-		global $wp_filesystem;
 		if ( ! $wp_filesystem || basename( untrailingslashit( $source ) ) === $expected ) {
 			return $source;
 		}
@@ -240,7 +252,10 @@ class Updater {
 		}
 
 		$response = wp_remote_get(
-			sprintf( 'https://api.github.com/repos/%s/releases/latest', WPMCP_GH_REPO ),
+			// Not /releases/latest: the repository also publishes the
+			// WordPress.org edition, and whichever release is newest overall is
+			// not necessarily one of ours. List them and pick our own instead.
+			sprintf( 'https://api.github.com/repos/%s/releases?per_page=30', WPMCP_GH_REPO ),
 			array(
 				'timeout'    => 10,
 				'user-agent' => 'wp-mcp-control/' . WPMCP_VERSION,
@@ -256,7 +271,7 @@ class Updater {
 			return $this->remember( false );
 		}
 
-		$parsed = $this->parse_release( json_decode( wp_remote_retrieve_body( $response ), true ) );
+		$parsed = $this->pick_release( json_decode( wp_remote_retrieve_body( $response ), true ) );
 
 		$this->store( $parsed ? $parsed : array() );
 
@@ -337,6 +352,26 @@ class Updater {
 	}
 
 	/**
+	 * The highest-versioned release that ships this plugin's own ZIP.
+	 *
+	 * @param mixed $releases Decoded list of releases.
+	 * @return array|false
+	 */
+	private function pick_release( $releases ) {
+		if ( ! is_array( $releases ) ) {
+			return false;
+		}
+		$best = false;
+		foreach ( $releases as $release ) {
+			$parsed = $this->parse_release( $release );
+			if ( $parsed && ( ! $best || version_compare( $parsed['version'], $best['version'], '>' ) ) ) {
+				$best = $parsed;
+			}
+		}
+		return $best;
+	}
+
+	/**
 	 * Reduce a GitHub release to the fields we need.
 	 *
 	 * @param mixed $release Decoded release.
@@ -406,42 +441,25 @@ class Updater {
 	 * @return string Empty string when nothing is downloadable.
 	 */
 	private function find_package( array $release ) {
-		$assets   = isset( $release['assets'] ) && is_array( $release['assets'] ) ? $release['assets'] : array();
-		$fallback = '';
+		$assets = isset( $release['assets'] ) && is_array( $release['assets'] ) ? $release['assets'] : array();
 
+		// Only the exact build CI attaches. Any other ZIP, or GitHub's source
+		// archive, may be a different plugin from the same repository, and
+		// installing that would deactivate this one on every site.
 		foreach ( $assets as $asset ) {
 			if ( empty( $asset['browser_download_url'] ) || empty( $asset['name'] ) ) {
 				continue;
 			}
-			$name = strtolower( (string) $asset['name'] );
-			if ( '.zip' !== substr( $name, -4 ) ) {
+			if ( WPMCP_SLUG . '.zip' !== strtolower( (string) $asset['name'] ) ) {
 				continue;
 			}
 			$download = esc_url_raw( (string) $asset['browser_download_url'] );
-			if ( ! $this->is_trusted_package( $download ) ) {
-				continue;
-			}
-			if ( WPMCP_SLUG . '.zip' === $name ) {
+			if ( $this->is_trusted_package( $download ) ) {
 				return $download;
 			}
-			if ( '' === $fallback ) {
-				$fallback = $download;
-			}
 		}
 
-		if ( '' !== $fallback ) {
-			return $fallback;
-		}
-
-		// No build was attached. GitHub's source archive still installs
-		// correctly thanks to fix_source_dir(), and offering it beats leaving
-		// every site silently stuck on an old version because a tag was pushed
-		// without the workflow completing.
-		if ( empty( $release['zipball_url'] ) ) {
-			return '';
-		}
-		$zipball = esc_url_raw( (string) $release['zipball_url'] );
-		return $this->is_trusted_package( $zipball ) ? $zipball : '';
+		return '';
 	}
 
 	/**

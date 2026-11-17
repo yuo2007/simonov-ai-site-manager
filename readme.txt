@@ -4,7 +4,7 @@ Tags: mcp, ai, claude, chatgpt, automation, woocommerce, polylang
 Requires at least: 5.8
 Tested up to: 6.6
 Requires PHP: 7.0
-Stable tag: 0.8.0
+Stable tag: 0.8.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -93,6 +93,18 @@ Note: the configured user acts with its full WordPress capabilities. Use the lea
 * WPML integration.
 
 == Changelog ==
+
+= 0.8.1 =
+* Security: updates now come only from a release that carries `wp-mcp-control.zip`. The same GitHub repository also publishes the WordPress.org edition under a different file name, and the updater used to take whichever release was newest and fall back to any ZIP in it. One release of that edition would have been installed over this plugin on every site, leaving WordPress pointing at a main file that no longer existed, so the plugin would have deactivated itself everywhere at once with no way to update back. A package that does not contain `wp-mcp-control.php` is now refused before anything is replaced.
+* Security: `update_option` and `get_option` trim the option name before checking it against the protected list. WordPress trims it too, so `"default_role "` with a trailing space used to get past the guard and change `default_role`.
+* Security: `update_user` no longer changes the role of the account the connection acts as. For a site with one administrator, demoting it locks everyone out of wp-admin.
+* Security: `deactivate_plugin` resolves the path the way WordPress does before refusing to deactivate this plugin, so a leading space, a doubled slash or an absolute path no longer gets around it.
+* Security: `pll_create_translation` checks publish rights before creating a published or scheduled translation, like `create_post` does. A contributor could otherwise skip review.
+* Fixed: backslashes vanished from post content and meta written through `create_post`, `update_post`, `update_post_meta` and `pll_create_translation`. WordPress strips one level of slashes from these inputs, so block attributes such as `<`, JSON and code samples lost theirs.
+* Fixed: a client that redeemed its authorization code without sending `client_id` got tokens bound to no client. That connection was missing from Active connections and could only be cut off with "Revoke all".
+* Fixed: the `status` of `create_comment` was ignored, because WordPress decides approval itself. It is applied after the comment is created. The missing `comment_author_url` warning is also gone.
+* Fixed: a tool call whose `name` was not a string caused a fatal error on PHP 8 instead of a JSON-RPC error.
+* Changed: the plugin points at the repository's current name, `yuo2007/simonov-ai-site-manager`, instead of relying on GitHub's redirect from the old one.
 
 = 0.8.0 =
 * Added: **read-only mode**. One checkbox and every tool that changes anything — creating, editing, deleting, installing, configuring — disappears from the client's tool list and is refused if called anyway. Worth switching on whenever a client is connected for research or reporting rather than editing. Withholding a tool works better than refusing it: a model that can see `delete_post` keeps reaching for it and reporting failures at you, while one that cannot see it never raises the subject.

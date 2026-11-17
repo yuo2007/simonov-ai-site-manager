@@ -190,6 +190,11 @@ class User_Tools extends Abstract_Tool {
 		}
 
 		if ( isset( $args['role'] ) ) {
+			// wp-admin will not let you change your own role either: for the
+			// only administrator that is a lockout nobody can undo.
+			if ( $id === get_current_user_id() ) {
+				throw new \Exception( 'Refusing to change the role of the account this connection acts as.' );
+			}
 			$this->assert_assignable_role( (string) $args['role'] );
 		}
 

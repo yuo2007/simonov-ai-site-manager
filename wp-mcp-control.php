@@ -1,10 +1,10 @@
 <?php
 /**
  * Plugin Name:       WP MCP Control
- * Plugin URI:        https://github.com/yuo2007/ai-site-control
- * Update URI:        https://github.com/yuo2007/ai-site-control
+ * Plugin URI:        https://github.com/yuo2007/simonov-ai-site-manager
+ * Update URI:        https://github.com/yuo2007/simonov-ai-site-manager
  * Description:        Free, open Model Context Protocol (MCP) server for WordPress. Lets Claude, ChatGPT and other MCP clients manage posts, media, users, taxonomies, comments, options, plugins, themes, WooCommerce and Polylang translations.
- * Version:           0.8.0
+ * Version:           0.8.1
  * Requires at least: 5.8
  * Requires PHP:      7.0
  * Author:            Oleksandr Simonov
@@ -20,7 +20,7 @@ namespace WPMCP;
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'WPMCP_VERSION', '0.8.0' );
+define( 'WPMCP_VERSION', '0.8.1' );
 define( 'WPMCP_FILE', __FILE__ );
 define( 'WPMCP_DIR', plugin_dir_path( __FILE__ ) );
 define( 'WPMCP_URL', plugin_dir_url( __FILE__ ) );
@@ -37,8 +37,8 @@ define( 'WPMCP_MIN_PHP', '7.0' );
  * stops WordPress.org from answering for this plugin, so a same-named plugin
  * in the directory can never push its own version onto these sites.
  */
-define( 'WPMCP_UPDATE_URI', 'https://github.com/yuo2007/ai-site-control' );
-define( 'WPMCP_GH_REPO', 'yuo2007/ai-site-control' );
+define( 'WPMCP_UPDATE_URI', 'https://github.com/yuo2007/simonov-ai-site-manager' );
+define( 'WPMCP_GH_REPO', 'yuo2007/simonov-ai-site-manager' );
 define( 'WPMCP_SLUG', 'wp-mcp-control' );
 define( 'WPMCP_BASENAME', plugin_basename( __FILE__ ) );
 

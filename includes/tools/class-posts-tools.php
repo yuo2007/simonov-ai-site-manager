@@ -285,13 +285,16 @@ class Posts_Tools extends Abstract_Tool {
 			$postarr['post_parent'] = (int) $args['parent'];
 		}
 
-		$id = $this->unwrap( wp_insert_post( $postarr, true ) );
+		// Core unslashes post fields and meta on the way in, as if they came
+		// from $_POST. Without slashing them first every backslash is lost,
+		// which breaks block markup (< ...), JSON and code samples.
+		$id = $this->unwrap( wp_insert_post( wp_slash( $postarr ), true ) );
 
 		if ( ! empty( $args['meta'] ) && is_array( $args['meta'] ) ) {
 			foreach ( $args['meta'] as $k => $v ) {
 				$key = sanitize_key( $k );
 				$this->assert_meta_writable( $key );
-				update_post_meta( $id, $key, $v );
+				update_post_meta( $id, $key, wp_slash( $v ) );
 			}
 		}
 
@@ -339,13 +342,13 @@ class Posts_Tools extends Abstract_Tool {
 			$postarr['post_parent'] = (int) $args['parent'];
 		}
 
-		$this->unwrap( wp_update_post( $postarr, true ) );
+		$this->unwrap( wp_update_post( wp_slash( $postarr ), true ) );
 
 		if ( ! empty( $args['meta'] ) && is_array( $args['meta'] ) ) {
 			foreach ( $args['meta'] as $k => $v ) {
 				$key = sanitize_key( $k );
 				$this->assert_meta_writable( $key );
-				update_post_meta( $id, $key, $v );
+				update_post_meta( $id, $key, wp_slash( $v ) );
 			}
 		}
 
@@ -429,7 +432,7 @@ class Posts_Tools extends Abstract_Tool {
 		if ( JSON_ERROR_NONE === json_last_error() && ( is_array( $decoded ) ) ) {
 			$value = $decoded;
 		}
-		update_post_meta( $id, $key, $value );
+		update_post_meta( $id, $key, wp_slash( $value ) );
 		return array(
 			'id'    => $id,
 			'key'   => $key,

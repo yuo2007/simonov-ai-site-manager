@@ -227,6 +227,13 @@ class Plugin_Theme_Tools extends Abstract_Tool {
 		if ( 0 !== validate_file( $plugin ) ) {
 			throw new \Exception( 'Invalid plugin path: ' . $plugin );
 		}
+		// deactivate_plugins() trims and runs plugin_basename(), so " x/y.php",
+		// "x//y.php" and the absolute path all reach the same plugin. Compare
+		// the form it will actually act on, and only accept installed plugins.
+		$plugin = plugin_basename( trim( $plugin ) );
+		if ( ! array_key_exists( $plugin, get_plugins() ) ) {
+			throw new \Exception( 'Plugin not installed: ' . $plugin );
+		}
 		// Deactivating itself leaves no way back in over MCP.
 		if ( plugin_basename( WPMCP_FILE ) === $plugin ) {
 			throw new \Exception( 'Refusing to deactivate the MCP plugin itself.' );

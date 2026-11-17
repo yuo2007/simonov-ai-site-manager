@@ -216,7 +216,7 @@ class Site_Tools extends Abstract_Tool {
 	 * @throws \Exception When blocked.
 	 */
 	public function get_option( array $args ) {
-		$name = (string) $this->required( $args, 'name' );
+		$name = trim( (string) $this->required( $args, 'name' ) ); // Core trims the name too; guard what it will really touch.
 		$this->guard_read( $name );
 		return array(
 			'name'  => $name,
@@ -280,7 +280,7 @@ class Site_Tools extends Abstract_Tool {
 	 * @throws \Exception When blocked.
 	 */
 	public function update_option( array $args ) {
-		$name  = (string) $this->required( $args, 'name' );
+		$name  = trim( (string) $this->required( $args, 'name' ) ); // Core trims the name too; guard what it will really touch.
 		$this->guard_write( $name );
 		$value = $this->required( $args, 'value' );
 		$decoded = json_decode( (string) $value, true );

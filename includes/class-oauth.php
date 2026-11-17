@@ -592,7 +592,10 @@ class OAuth {
 			$this->send_json( array( 'error' => 'invalid_grant' ), 400 );
 		}
 
-		$this->issue_tokens( (int) $record['user_id'], $client_id );
+		// Bind to the client that was authorized, not to what this request
+		// says: a token stored without a client_id never shows up under
+		// Connections and cannot be revoked on its own.
+		$this->issue_tokens( (int) $record['user_id'], (string) $record['client_id'] );
 	}
 
 	/**
@@ -608,7 +611,9 @@ class OAuth {
 		$hash  = hash( 'sha256', $refresh );
 		$rec   = isset( $store[ $hash ] ) ? $store[ $hash ] : null;
 
-		if ( ! is_array( $rec ) || (int) $rec['expires'] < time() || ! hash_equals( (string) $rec['client_id'], $client_id ) ) {
+		// Same rule as the code grant: a public client may omit client_id, but
+		// one that sends it must send the one the token was issued to.
+		if ( ! is_array( $rec ) || (int) $rec['expires'] < time() || ( '' !== $client_id && ! hash_equals( (string) $rec['client_id'], $client_id ) ) ) {
 			$this->send_json( array( 'error' => 'invalid_grant' ), 400 );
 		}
 
@@ -628,7 +633,7 @@ class OAuth {
 		unset( $store[ $hash ] );
 		update_option( self::REFRESH, $store, false );
 
-		$this->issue_tokens( (int) $rec['user_id'], $client_id );
+		$this->issue_tokens( (int) $rec['user_id'], (string) $rec['client_id'] );
 	}
 
 	/* --------------------------------------------------------------------- */
