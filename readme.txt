@@ -4,7 +4,7 @@ Tags: mcp, ai, claude, chatgpt, automation, woocommerce, polylang
 Requires at least: 5.8
 Tested up to: 6.6
 Requires PHP: 7.0
-Stable tag: 0.8.1
+Stable tag: 0.8.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -24,6 +24,7 @@ WP MCP Control exposes a single Streamable-HTTP MCP endpoint that lets AI client
 * Themes — list, install, activate, update, delete.
 * WooCommerce — products and orders (auto-enabled when WooCommerce is active).
 * Polylang — languages, translations, linking (auto-enabled when Polylang is active).
+* SEO — SEO title, meta description, focus keyphrase, canonical URL, indexing and social sharing fields (auto-enabled when Yoast SEO or Rank Math is active).
 
 Every action runs as a WordPress user you choose, so capability checks are always enforced.
 
@@ -93,6 +94,11 @@ Note: the configured user acts with its full WordPress capabilities. Use the lea
 * WPML integration.
 
 == Changelog ==
+
+= 0.8.2 =
+* Added: `get_seo` and `update_seo` read and set a post's SEO title, meta description, focus keyphrase, canonical URL, indexing and social sharing title, description and image, with the same field names in Yoast SEO and Rank Math. They appear only when one of the two is active; when both are, pass `plugin`.
+* The SEO plugin's role settings apply: canonical URLs and indexing need its advanced-settings permission (Yoast SEO: editors by default; Rank Math: administrators by default), and the same rule now holds for SEO fields written through `update_post_meta`. In Rank Math, changing indexing keeps the post type's other robots directives.
+* Fixed: `get_post` showed a post's protected custom fields to users who can read the post but not edit it. It now hides them, as `get_post_meta` already did.
 
 = 0.8.1 =
 * Security: updates now come only from a release that carries `wp-mcp-control.zip`. The same GitHub repository also publishes the WordPress.org edition under a different file name, and the updater used to take whichever release was newest and fall back to any ZIP in it. One release of that edition would have been installed over this plugin on every site, leaving WordPress pointing at a main file that no longer existed, so the plugin would have deactivated itself everywhere at once with no way to update back. A package that does not contain `wp-mcp-control.php` is now refused before anything is replaced.

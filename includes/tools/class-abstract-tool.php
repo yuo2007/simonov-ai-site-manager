@@ -342,11 +342,17 @@ abstract class Abstract_Tool {
 	 * @throws \Exception When protected.
 	 */
 	protected function assert_meta_writable( $key ) {
+		// SEO plugins gate some of their fields by role; keep that true here.
+		Seo_Tools::assert_meta_key_permitted( $key );
+
 		if ( ! is_protected_meta( $key, 'post' ) ) {
 			return;
 		}
 		if ( $this->is_allowed_protected_meta( $key ) ) {
 			return;
+		}
+		if ( 0 === strpos( $key, 'rank_math_' ) ) {
+			throw new \Exception( esc_html( sprintf( 'Rank Math field %s is not writable as raw meta. Use update_seo for SEO fields.', $key ) ) );
 		}
 		throw new \Exception( sprintf( 'Protected meta key is not writable via MCP: %s', $key ) );
 	}

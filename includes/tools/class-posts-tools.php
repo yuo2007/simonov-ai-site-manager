@@ -441,11 +441,22 @@ class Posts_Tools extends Abstract_Tool {
 		$id = (int) $this->required( $args, 'id' );
 		$this->assert_readable_post( $id );
 
-		$all = get_post_meta( $id );
+		return $this->visible_meta( $id );
+	}
 
-		// Protected meta is where plugins keep private state — legacy
-		// WooCommerce orders hold _billing_email, _billing_phone and the rest
-		// here. Only expose it to someone who could edit the post.
+	/**
+	 * A post's meta, minus protected keys unless the user may edit the post.
+	 *
+	 * Protected meta is where plugins keep private state — legacy
+	 * WooCommerce orders hold _billing_email, _billing_phone and the rest
+	 * here, SEO plugins their focus keyphrases. Only someone who could edit
+	 * the post sees it, through get_post and get_post_meta alike.
+	 *
+	 * @param int $id Post ID.
+	 * @return array
+	 */
+	private function visible_meta( $id ) {
+		$all = get_post_meta( $id );
 		if ( current_user_can( 'edit_post', $id ) ) {
 			return $all;
 		}
@@ -531,7 +542,7 @@ class Posts_Tools extends Abstract_Tool {
 		if ( $full ) {
 			$data['content'] = $p->post_content;
 			$data['excerpt'] = $p->post_excerpt;
-			$data['meta']    = get_post_meta( $p->ID );
+			$data['meta']    = $this->visible_meta( $p->ID );
 			$data['terms']   = $this->post_terms( $p );
 		}
 		return $data;

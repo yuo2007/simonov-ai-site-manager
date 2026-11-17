@@ -86,6 +86,7 @@ class Tool_Registry {
 		'get_option',
 		'get_post',
 		'get_post_meta',
+		'get_seo',
 		'get_site_info',
 		'get_user',
 		'pll_get_post_language',
