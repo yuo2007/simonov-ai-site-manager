@@ -275,6 +275,9 @@ abstract class Abstract_Tool {
 	 * @throws \Exception When protected.
 	 */
 	protected function assert_meta_writable( $key ) {
+		// SEO plugins gate some of their fields by role; keep that true here.
+		Seo_Tools::assert_meta_key_permitted( $key );
+
 		if ( ! is_protected_meta( $key, 'post' ) ) {
 			return;
 		}

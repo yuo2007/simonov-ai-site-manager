@@ -102,6 +102,7 @@ final class Plugin {
 		require_once WPMCP_DIR . 'includes/tools/class-site-tools.php';
 		require_once WPMCP_DIR . 'includes/tools/class-woocommerce-tools.php';
 		require_once WPMCP_DIR . 'includes/tools/class-polylang-tools.php';
+		require_once WPMCP_DIR . 'includes/tools/class-seo-tools.php';
 		require_once WPMCP_DIR . 'admin/class-admin.php';
 	}
 
@@ -123,6 +124,10 @@ final class Plugin {
 
 		if ( function_exists( 'pll_languages_list' ) ) {
 			$groups[] = new Tools\Polylang_Tools();
+		}
+
+		if ( Tools\Seo_Tools::active_plugins() ) {
+			$groups[] = new Tools\Seo_Tools();
 		}
 
 		/**

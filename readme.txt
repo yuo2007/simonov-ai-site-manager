@@ -4,7 +4,7 @@ Tags: mcp, ai, automation, api, content-management
 Requires at least: 5.8
 Tested up to: 7.1
 Requires PHP: 7.0
-Stable tag: 0.9.3
+Stable tag: 0.10.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -24,6 +24,7 @@ Connect Claude or ChatGPT, describe the result you want in plain words, and let 
 * "Create products from this price list: titles, descriptions, SKUs, prices and stock. Save them as drafts so I can check them first."
 * "Put a 20% sale price on every product in the Summer category."
 * "Rewrite the excerpts of my ten latest posts so each one is under 160 characters."
+* "Write an SEO title and meta description for every post in the Recipes category that does not have one yet." (with Yoast SEO or Rank Math)
 * "Make a Polish translation of yesterday's post and link the two." (with Polylang)
 * "Go through the comments waiting for moderation, approve the genuine ones and reply to the questions."
 
@@ -41,6 +42,7 @@ It can manage:
 * Comments — moderate, reply, delete.
 * WooCommerce — products and order status (auto-enabled when WooCommerce is active).
 * Polylang — languages, translations, linking (auto-enabled when Polylang is active).
+* SEO — SEO title, meta description, focus keyphrase, canonical URL, indexing and social sharing fields (auto-enabled when Yoast SEO or Rank Math is active).
 
 And look up, read-only:
 
@@ -177,12 +179,15 @@ Note: the configured user acts with its full WordPress capabilities. Use the lea
 
 Planned next, roughly in this order. Requests and ideas are welcome in the support forum.
 
-* SEO fields in one tool, whichever plugin you use: titles, meta descriptions, focus keyphrases, canonical URLs and social previews for Yoast SEO and Rank Math.
 * Advanced Custom Fields: read and write fields by name, including images, relationships and repeaters.
 * WPML, alongside the existing Polylang support.
 * Block-level editing: change, insert or remove a single block and insert patterns without rewriting the whole post.
 
 == Changelog ==
+
+= 0.10.0 =
+* New: `get_seo` and `update_seo` read and set a post's SEO title, meta description, focus keyphrase, canonical URL, indexing and social sharing title, description and image. They work the same with Yoast SEO and Rank Math, so the assistant does not need to know which one the site uses. They appear only when one of the two is active.
+* Your SEO plugin's role settings apply. Authors can change titles and descriptions of their own posts; canonical URLs and indexing need the plugin's advanced-settings permission, which by default Yoast SEO gives to editors and Rank Math to administrators. The same rule now applies when SEO fields are written through `update_post_meta`.
 
 = 0.9.3 =
 * Backslashes are no longer lost from post content and custom fields written through the tools. Block markup, JSON and code samples keep them.
