@@ -98,9 +98,11 @@ class Seo_Tools extends Abstract_Tool {
 	 * Refuse a generic meta write to an SEO field the user could not change
 	 * through update_seo or the plugin's own editor.
 	 *
-	 * Rank Math's keys are not protected meta and Yoast's are allowlisted for
-	 * update_post_meta, so without this the generic meta tools would be a
-	 * way around both plugins' role settings.
+	 * Yoast's keys are allowlisted for update_post_meta, so without this the
+	 * generic meta tools would be a way around its advanced-settings role.
+	 * Rank Math marks its own keys protected once it is set up, which already
+	 * keeps them out of the generic tools; before setup it does not, and this
+	 * check applies its role settings in that window too.
 	 *
 	 * @param string $key Meta key (already sanitized).
 	 * @throws \Exception When the plugin would not let this user change it.
@@ -324,7 +326,13 @@ class Seo_Tools extends Abstract_Tool {
 			}
 		}
 
-		return $this->read( $plugin, $post->ID );
+		$out = $this->read( $plugin, $post->ID );
+
+		$social = array_intersect( array_keys( $changes ), array( 'og_title', 'og_description', 'og_image_id' ) );
+		if ( $social && 'yoast' === $plugin && class_exists( 'WPSEO_Options' ) && ! \WPSEO_Options::get( 'opengraph' ) ) {
+			$out['warnings'] = array( 'Saved, but Yoast SEO\'s Open Graph output is switched off (Yoast SEO > Settings > Site features > Open Graph data), so social shares will not use these fields until it is switched on.' );
+		}
+		return $out;
 	}
 
 	/**
@@ -404,20 +412,64 @@ class Seo_Tools extends Abstract_Tool {
 			return;
 		}
 
-		// Rank Math keeps robots as one array (index/noindex, nofollow,
-		// noarchive, ...); change only the index directive and keep the rest.
-		$robots = array_values( array_diff( (array) get_post_meta( $id, 'rank_math_robots', true ), array( 'index', 'noindex', '' ) ) );
+		// Rank Math keeps robots as one array (noindex, nofollow, noarchive,
+		// ...) and uses the post type's robots only while the post has none of
+		// its own: any per-post value replaces them all. So the other
+		// directives are taken from the post when it has some, or from the
+		// post type when it does not, and only the index one is changed.
+		$current  = self::directives( get_post_meta( $id, 'rank_math_robots', true ) );
+		$defaults = self::rank_math_type_robots( (string) get_post_type( $id ) );
+		$others   = array_values( array_diff( $current ? $current : $defaults, array( 'index', 'noindex', '' ) ) );
+
 		if ( 'default' === $value ) {
-			if ( $robots ) {
-				update_post_meta( $id, 'rank_math_robots', $robots );
-			} else {
-				// No per-post robots at all: Rank Math falls back to the post type setting.
+			$robots = in_array( 'noindex', $defaults, true ) ? array_merge( array( 'noindex' ), $others ) : $others;
+			// Identical to the post type's robots: drop the per-post copy, so a
+			// later change to the post type setting reaches this post again.
+			$implied = array( 'index', '' );
+			if ( ! $robots || ! array_diff( array_diff( $robots, $implied ), $defaults ) && ! array_diff( array_diff( $defaults, $implied ), $robots ) ) {
 				delete_post_meta( $id, 'rank_math_robots' );
+				return;
 			}
+			update_post_meta( $id, 'rank_math_robots', $robots );
 			return;
 		}
-		array_unshift( $robots, $value );
-		update_post_meta( $id, 'rank_math_robots', $robots );
+		array_unshift( $others, $value );
+		update_post_meta( $id, 'rank_math_robots', $others );
+	}
+
+	/**
+	 * The robots Rank Math applies to a post that has none of its own:
+	 * the post type's when that type has custom robots, else the global ones.
+	 *
+	 * @param string $post_type Post type.
+	 * @return string[]
+	 */
+	private static function rank_math_type_robots( $post_type ) {
+		if ( ! class_exists( '\\RankMath\\Helper' ) ) {
+			return array();
+		}
+		$robots = \RankMath\Helper::get_settings( "titles.pt_{$post_type}_custom_robots" )
+			? \RankMath\Helper::get_settings( "titles.pt_{$post_type}_robots" )
+			: \RankMath\Helper::get_settings( 'titles.robots_global' );
+		return self::directives( $robots );
+	}
+
+	/**
+	 * Robots directives as a clean list. An absent meta value comes back
+	 * as '' and (array) '' is array( '' ), which would read as "the post
+	 * has robots of its own".
+	 *
+	 * @param mixed $value Stored value.
+	 * @return string[]
+	 */
+	private static function directives( $value ) {
+		$out = array();
+		foreach ( (array) $value as $item ) {
+			if ( is_string( $item ) && '' !== $item ) {
+				$out[] = $item;
+			}
+		}
+		return $out;
 	}
 
 	/**

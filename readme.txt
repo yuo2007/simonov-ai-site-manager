@@ -188,6 +188,7 @@ Planned next, roughly in this order. Requests and ideas are welcome in the suppo
 = 0.10.0 =
 * New: `get_seo` and `update_seo` read and set a post's SEO title, meta description, focus keyphrase, canonical URL, indexing and social sharing title, description and image. They work the same with Yoast SEO and Rank Math, so the assistant does not need to know which one the site uses. They appear only when one of the two is active.
 * Your SEO plugin's role settings apply. Authors can change titles and descriptions of their own posts; canonical URLs and indexing need the plugin's advanced-settings permission, which by default Yoast SEO gives to editors and Rank Math to administrators. The same rule now applies when SEO fields are written through `update_post_meta`.
+* Fixed: `get_post` showed a post's protected custom fields (the ones starting with an underscore, where plugins keep private data) to users who can read the post but not edit it. It now hides them, as `get_post_meta` already did.
 
 = 0.9.3 =
 * Backslashes are no longer lost from post content and custom fields written through the tools. Block markup, JSON and code samples keep them.

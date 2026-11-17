@@ -284,6 +284,9 @@ abstract class Abstract_Tool {
 		if ( $this->is_allowed_protected_meta( $key ) ) {
 			return;
 		}
+		if ( 0 === strpos( $key, 'rank_math_' ) ) {
+			throw new \Exception( esc_html( sprintf( 'Rank Math field %s is not writable as raw meta. Use update_seo for SEO fields.', $key ) ) );
+		}
 		throw new \Exception( esc_html( sprintf( 'Protected meta key is not writable via MCP: %s', $key ) ) );
 	}
 
