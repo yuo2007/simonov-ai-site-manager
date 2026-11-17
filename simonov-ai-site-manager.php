@@ -3,7 +3,7 @@
  * Plugin Name:       Simonov AI Site Manager (MCP)
  * Plugin URI:        https://github.com/yuo2007/simonov-ai-site-manager
  * Description:        Free, open Model Context Protocol (MCP) server for WordPress. Lets Claude, ChatGPT and other MCP clients manage posts, media, taxonomies, comments, WooCommerce and Polylang translations.
- * Version:           0.9.2
+ * Version:           0.9.3
  * Requires at least: 5.8
  * Requires PHP:      7.0
  * Author:            Oleksandr Simonov
@@ -19,7 +19,7 @@ namespace WPMCP;
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'WPMCP_VERSION', '0.9.2' );
+define( 'WPMCP_VERSION', '0.9.3' );
 define( 'WPMCP_FILE', __FILE__ );
 define( 'WPMCP_DIR', plugin_dir_path( __FILE__ ) );
 define( 'WPMCP_URL', plugin_dir_url( __FILE__ ) );

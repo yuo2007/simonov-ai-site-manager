@@ -190,10 +190,69 @@ class Posts_Tools extends Abstract_Tool {
 	 * @return array
 	 */
 	public function list_posts( array $args ) {
-		$per_page = $this->per_page( $args['per_page'] ?? null );
-		$query    = new \WP_Query(
+		$per_page  = $this->per_page( $args['per_page'] ?? null );
+		$post_type = (string) ( $args['post_type'] ?? 'post' );
+
+		// A type nobody can view on the front end (GDPR requests, internal
+		// bookkeeping) is only listable by someone who may edit it.
+		$type_obj = 'any' === $post_type ? null : get_post_type_object( $post_type );
+		if ( 'any' !== $post_type && ( ! $type_obj || ! is_post_type_viewable( $type_obj ) ) ) {
+			$type_obj = $this->assert_post_type( $post_type, 'edit' );
+		}
+
+		// perm=readable only guards the private status. Drafts, pending and
+		// scheduled posts would still be listed for everyone, so mirror the
+		// Posts screen: without edit_others_posts you see only your own.
+		$others_cap = $type_obj ? $type_obj->cap->edit_others_posts : 'edit_others_posts';
+		$own_only   = null;
+		if ( ! current_user_can( $others_cap ) ) {
+			$protected = array_values( get_post_stati( array( 'protected' => true ) ) );
+			$user_id   = get_current_user_id();
+			$own_only  = static function ( $where ) use ( $protected, $user_id ) {
+				global $wpdb;
+				if ( ! $protected ) {
+					return $where;
+				}
+				$placeholders = implode( ', ', array_fill( 0, count( $protected ), '%s' ) );
+				// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- the placeholders are built above and every value is passed to prepare().
+				return $where . $wpdb->prepare( " AND ( {$wpdb->posts}.post_status NOT IN ( {$placeholders} ) OR {$wpdb->posts}.post_author = %d )", array_merge( $protected, array( $user_id ) ) );
+			};
+			add_filter( 'posts_where', $own_only );
+		}
+
+		try {
+			$query = $this->run_list_query( $post_type, $args, $per_page );
+		} finally {
+			if ( $own_only ) {
+				remove_filter( 'posts_where', $own_only );
+			}
+		}
+
+		$posts = array();
+		foreach ( $query->posts as $p ) {
+			$posts[] = $this->format_post( $p, false );
+		}
+
+		return array(
+			'total'       => (int) $query->found_posts,
+			'total_pages' => (int) $query->max_num_pages,
+			'page'        => max( 1, (int) ( $args['page'] ?? 1 ) ),
+			'posts'       => $posts,
+		);
+	}
+
+	/**
+	 * The WP_Query behind list_posts.
+	 *
+	 * @param string $post_type Post type.
+	 * @param array  $args      Tool args.
+	 * @param int    $per_page  Page size.
+	 * @return \WP_Query
+	 */
+	private function run_list_query( $post_type, array $args, $per_page ) {
+		return new \WP_Query(
 			array(
-				'post_type'      => $args['post_type'] ?? 'post',
+				'post_type'      => $post_type,
 				'post_status'    => $args['status'] ?? 'any',
 				// Without perm=readable, WP_Query folds private and draft
 				// statuses into the result set unconditionally, so a caller
@@ -206,18 +265,6 @@ class Posts_Tools extends Abstract_Tool {
 				'orderby'        => $args['orderby'] ?? 'date',
 				'order'          => $args['order'] ?? 'DESC',
 			)
-		);
-
-		$posts = array();
-		foreach ( $query->posts as $p ) {
-			$posts[] = $this->format_post( $p, false );
-		}
-
-		return array(
-			'total'       => (int) $query->found_posts,
-			'total_pages' => (int) $query->max_num_pages,
-			'page'        => max( 1, (int) ( $args['page'] ?? 1 ) ),
-			'posts'       => $posts,
 		);
 	}
 
@@ -285,13 +332,16 @@ class Posts_Tools extends Abstract_Tool {
 			$postarr['post_parent'] = (int) $args['parent'];
 		}
 
-		$id = $this->unwrap( wp_insert_post( $postarr, true ) );
+		// Core unslashes post fields and meta on the way in, as if they came
+		// from $_POST. Without slashing them first every backslash is lost,
+		// which breaks block markup (< ...), JSON and code samples.
+		$id = $this->unwrap( wp_insert_post( wp_slash( $postarr ), true ) );
 
 		if ( ! empty( $args['meta'] ) && is_array( $args['meta'] ) ) {
 			foreach ( $args['meta'] as $k => $v ) {
 				$key = sanitize_key( $k );
 				$this->assert_meta_writable( $key );
-				update_post_meta( $id, $key, $v );
+				update_post_meta( $id, $key, wp_slash( $v ) );
 			}
 		}
 
@@ -339,13 +389,13 @@ class Posts_Tools extends Abstract_Tool {
 			$postarr['post_parent'] = (int) $args['parent'];
 		}
 
-		$this->unwrap( wp_update_post( $postarr, true ) );
+		$this->unwrap( wp_update_post( wp_slash( $postarr ), true ) );
 
 		if ( ! empty( $args['meta'] ) && is_array( $args['meta'] ) ) {
 			foreach ( $args['meta'] as $k => $v ) {
 				$key = sanitize_key( $k );
 				$this->assert_meta_writable( $key );
-				update_post_meta( $id, $key, $v );
+				update_post_meta( $id, $key, wp_slash( $v ) );
 			}
 		}
 
@@ -429,7 +479,7 @@ class Posts_Tools extends Abstract_Tool {
 		if ( JSON_ERROR_NONE === json_last_error() && ( is_array( $decoded ) ) ) {
 			$value = $decoded;
 		}
-		update_post_meta( $id, $key, $value );
+		update_post_meta( $id, $key, wp_slash( $value ) );
 		return array(
 			'id'    => $id,
 			'key'   => $key,

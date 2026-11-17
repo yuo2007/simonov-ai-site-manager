@@ -143,7 +143,7 @@ class Comment_Tools extends Abstract_Tool {
 			'comment_author_email' => sanitize_email( (string) ( $args['author_email'] ?? '' ) ),
 			// wp_new_comment() reads this key unconditionally and warns when absent.
 			'comment_author_url'   => '',
-			'comment_parent'      => (int) ( $args['parent'] ?? 0 ),
+			'comment_parent'       => (int) ( $args['parent'] ?? 0 ),
 			'comment_approved'     => ( 'approve' === $status ) ? 1 : 0,
 		);
 
@@ -152,6 +152,18 @@ class Comment_Tools extends Abstract_Tool {
 		if ( ! $id ) {
 			throw new \Exception( esc_html( 'Failed to create comment.' ) );
 		}
+
+		// wp_new_comment() discards comment_approved and decides for itself
+		// via wp_allow_comment(), so the requested status has to be applied
+		// afterwards. "hold" only demotes an approved comment; anything the
+		// spam checks caught stays where they put it.
+		$current = (string) get_comment( $id )->comment_approved;
+		if ( 'approve' === $status && '1' !== $current ) {
+			wp_set_comment_status( $id, 'approve' );
+		} elseif ( 'hold' === $status && '1' === $current ) {
+			wp_set_comment_status( $id, 'hold' );
+		}
+
 		return $this->format_comment( get_comment( $id ) );
 	}
 

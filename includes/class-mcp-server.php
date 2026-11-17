@@ -179,6 +179,13 @@ class MCP_Server {
 
 		$audit = wpmcp()->audit;
 
+		// An array here would be a TypeError (a fatal) inside has() on PHP 8.
+		if ( ! is_string( $name ) ) {
+			return $this->error( $id, -32602, 'Tool name must be a string.' );
+		}
+		// Unknown names are logged verbatim; keep a hostile one from bloating the log.
+		$name = substr( $name, 0, 100 );
+
 		if ( ! $this->tools->has( $name ) ) {
 			$audit->record( $name, 'unknown', $args );
 			return $this->error( $id, -32602, 'Unknown or disabled tool: ' . $name );

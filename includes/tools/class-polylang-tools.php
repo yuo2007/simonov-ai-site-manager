@@ -202,12 +202,21 @@ class Polylang_Tools extends Abstract_Tool {
 		$source = $this->assert_readable_post( $source_id );
 		$this->assert_post_type( $source->post_type, 'edit' );
 
+		$status = (string) ( $args['status'] ?? 'draft' );
+		// Same rule as create_post: publishing needs publish rights, not just
+		// edit rights, or a contributor could skip review via a translation.
+		if ( in_array( $status, array( 'publish', 'future' ), true ) ) {
+			$this->assert_post_type( $source->post_type, 'publish' );
+		}
+
 		$new_id = wp_insert_post(
-			array(
-				'post_title'   => (string) $this->required( $args, 'title' ),
-				'post_content' => (string) ( $args['content'] ?? $source->post_content ),
-				'post_status'  => (string) ( $args['status'] ?? 'draft' ),
-				'post_type'    => $source->post_type,
+			wp_slash(
+				array(
+					'post_title'   => (string) $this->required( $args, 'title' ),
+					'post_content' => (string) ( $args['content'] ?? $source->post_content ),
+					'post_status'  => $status,
+					'post_type'    => $source->post_type,
+				)
 			),
 			true
 		);

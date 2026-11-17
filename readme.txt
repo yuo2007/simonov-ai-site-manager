@@ -4,7 +4,7 @@ Tags: mcp, ai, automation, api, content-management
 Requires at least: 5.8
 Tested up to: 7.1
 Requires PHP: 7.0
-Stable tag: 0.9.2
+Stable tag: 0.9.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -178,6 +178,14 @@ Note: the configured user acts with its full WordPress capabilities. Use the lea
 * WPML integration.
 
 == Changelog ==
+
+= 0.9.3 =
+* Backslashes are no longer lost from post content and custom fields written through the tools. Block markup, JSON and code samples keep them.
+* `list_posts` shows other people's drafts, pending and scheduled posts only to users who may edit them, like the Posts screen in wp-admin.
+* Creating a published translation needs the right to publish, as creating a published post already did.
+* The status asked for when creating a comment is now applied.
+* A connection is always tied to the client that was authorized, so it appears under Active connections and can be revoked there.
+* A malformed tool call returns an error instead of failing the request on PHP 8.
 
 = 0.9.2 =
 * Every tool now tells the client whether it only reads, adds something new, or can overwrite or delete. ChatGPT and other clients run reading tools without asking and ask before changes.
