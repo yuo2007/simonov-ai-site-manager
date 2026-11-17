@@ -175,7 +175,12 @@ Note: the configured user acts with its full WordPress capabilities. Use the lea
 
 == Roadmap ==
 
-* WPML integration.
+Planned next, roughly in this order. Requests and ideas are welcome in the support forum.
+
+* SEO fields in one tool, whichever plugin you use: titles, meta descriptions, focus keyphrases, canonical URLs and social previews for Yoast SEO and Rank Math.
+* Advanced Custom Fields: read and write fields by name, including images, relationships and repeaters.
+* WPML, alongside the existing Polylang support.
+* Block-level editing: change, insert or remove a single block and insert patterns without rewriting the whole post.
 
 == Changelog ==
 
